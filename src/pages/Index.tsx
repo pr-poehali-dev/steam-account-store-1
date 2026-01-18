@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,11 +57,21 @@ const Index = () => {
   const [balance, setBalance] = useState(5000);
   const [currentView, setCurrentView] = useState<'catalog' | 'cart' | 'profile'>('catalog');
   const [topUpAmount, setTopUpAmount] = useState('');
+  const [selectedGame, setSelectedGame] = useState<string>('all');
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 20000]);
 
-  const filteredAccounts = accounts.filter(acc => 
-    acc.game.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    acc.rank.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const allGames = useMemo(() => {
+    const games = Array.from(new Set(accounts.map(acc => acc.game)));
+    return ['all', ...games.sort()];
+  }, [accounts]);
+
+  const filteredAccounts = accounts.filter(acc => {
+    const matchesSearch = acc.game.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      acc.rank.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesGame = selectedGame === 'all' || acc.game === selectedGame;
+    const matchesPrice = acc.price >= priceRange[0] && acc.price <= priceRange[1];
+    return matchesSearch && matchesGame && matchesPrice;
+  });
 
   const addToCart = (account: Account) => {
     if (!cart.find(item => item.id === account.id)) {
@@ -153,7 +163,7 @@ const Index = () => {
       <main className="container mx-auto px-4 py-8">
         {currentView === 'catalog' && (
           <>
-            <div className="mb-8">
+            <div className="mb-8 space-y-6">
               <div className="relative max-w-2xl mx-auto">
                 <Icon name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
@@ -163,6 +173,70 @@ const Index = () => {
                   className="pl-10 h-12 border-primary/30 focus:border-primary neon-border"
                 />
               </div>
+
+              <Card className="p-6 bg-card/50 backdrop-blur-sm border-primary/20">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-foreground flex items-center gap-2">
+                      <Icon name="Gamepad2" className="h-4 w-4 text-primary" />
+                      Игра
+                    </Label>
+                    <select
+                      value={selectedGame}
+                      onChange={(e) => setSelectedGame(e.target.value)}
+                      className="w-full h-10 px-3 rounded-md border border-primary/30 bg-background text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="all">Все игры</option>
+                      {allGames.slice(1).map((game) => (
+                        <option key={game} value={game}>{game}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-foreground flex items-center gap-2">
+                      <Icon name="DollarSign" className="h-4 w-4 text-secondary" />
+                      Цена: {priceRange[0]} - {priceRange[1]} ₽
+                    </Label>
+                    <div className="flex items-center gap-4">
+                      <Input
+                        type="number"
+                        value={priceRange[0]}
+                        onChange={(e) => setPriceRange([parseInt(e.target.value) || 0, priceRange[1]])}
+                        className="border-primary/30 focus:border-primary"
+                        placeholder="От"
+                      />
+                      <span className="text-muted-foreground">—</span>
+                      <Input
+                        type="number"
+                        value={priceRange[1]}
+                        onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value) || 20000])}
+                        className="border-primary/30 focus:border-primary"
+                        placeholder="До"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Найдено аккаунтов: <span className="text-primary font-bold">{filteredAccounts.length}</span>
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedGame('all');
+                      setPriceRange([0, 20000]);
+                      setSearchQuery('');
+                    }}
+                    className="border-secondary/50 hover:border-secondary"
+                  >
+                    <Icon name="X" className="h-4 w-4 mr-1" />
+                    Сбросить
+                  </Button>
+                </div>
+              </Card>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
