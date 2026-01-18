@@ -87,6 +87,10 @@ const Index = () => {
   const [topUpAmount, setTopUpAmount] = useState('');
   const [selectedGame, setSelectedGame] = useState<string>('all');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 20000]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<{ name: string; email: string; avatar: string } | null>(null);
+  const [purchaseHistory, setPurchaseHistory] = useState<Account[]>([]);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   const allGames = useMemo(() => {
     const games = Array.from(new Set(accounts.map(acc => acc.game)));
@@ -118,8 +122,18 @@ const Index = () => {
   const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
 
   const handlePurchase = () => {
+    if (!isAuthenticated) {
+      setShowAuthDialog(true);
+      toast({
+        title: "Требуется авторизация",
+        description: "Войдите в аккаунт для покупки",
+        variant: "destructive",
+      });
+      return;
+    }
     if (balance >= cartTotal) {
       setBalance(balance - cartTotal);
+      setPurchaseHistory([...purchaseHistory, ...cart]);
       setCart([]);
       toast({
         title: "Покупка успешна!",
@@ -136,6 +150,15 @@ const Index = () => {
   };
 
   const handleTopUp = () => {
+    if (!isAuthenticated) {
+      setShowAuthDialog(true);
+      toast({
+        title: "Требуется авторизация",
+        description: "Войдите в аккаунт для пополнения баланса",
+        variant: "destructive",
+      });
+      return;
+    }
     const amount = parseInt(topUpAmount);
     if (amount > 0) {
       setBalance(balance + amount);
@@ -145,6 +168,31 @@ const Index = () => {
         description: `+${amount} ₽`,
       });
     }
+  };
+
+  const handleGoogleLogin = () => {
+    setIsAuthenticated(true);
+    setUser({
+      name: 'Пользователь Google',
+      email: 'user@gmail.com',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=GoogleUser'
+    });
+    setShowAuthDialog(false);
+    toast({
+      title: "Вход выполнен",
+      description: "Добро пожаловать!",
+    });
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setUser(null);
+    setPurchaseHistory([]);
+    setBalance(5000);
+    toast({
+      title: "Выход выполнен",
+      description: "До скорой встречи!",
+    });
   };
 
   return (
@@ -185,13 +233,28 @@ const Index = () => {
                 )}
               </Button>
               
-              <Button 
-                variant={currentView === 'profile' ? 'default' : 'ghost'}
-                onClick={() => setCurrentView('profile')}
-              >
-                <Icon name="User" className="mr-2 h-4 w-4" />
-                Профиль
-              </Button>
+              {isAuthenticated ? (
+                <Button 
+                  variant={currentView === 'profile' ? 'default' : 'ghost'}
+                  onClick={() => setCurrentView('profile')}
+                  className="flex items-center gap-2"
+                >
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="text-xs bg-primary/20 text-primary">
+                      {user?.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  Профиль
+                </Button>
+              ) : (
+                <Button 
+                  onClick={() => setShowAuthDialog(true)}
+                  className="neon-border"
+                >
+                  <Icon name="LogIn" className="mr-2 h-4 w-4" />
+                  Войти
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -520,84 +583,200 @@ const Index = () => {
         )}
 
         {currentView === 'profile' && (
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-3xl font-bold mb-6 neon-glow text-primary">Профиль</h2>
-            
-            <Card className="mb-6 bg-card/50 backdrop-blur-sm border-primary/20">
-              <CardHeader>
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-20 w-20 neon-border">
-                    <AvatarFallback className="bg-primary/20 text-primary text-2xl">US</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <CardTitle className="text-2xl text-primary">User#12345</CardTitle>
-                    <CardDescription className="text-foreground/70">Покупатель</CardDescription>
-                  </div>
+          <div className="max-w-4xl mx-auto">
+            {!isAuthenticated ? (
+              <Card className="p-12 text-center bg-card/50 backdrop-blur-sm border-primary/20">
+                <Icon name="UserX" className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <h2 className="text-2xl font-bold mb-2 text-foreground">Требуется авторизация</h2>
+                <p className="text-muted-foreground mb-6">Войдите в аккаунт для доступа к профилю</p>
+                <Button onClick={() => setShowAuthDialog(true)} className="neon-border">
+                  <Icon name="LogIn" className="mr-2 h-5 w-5" />
+                  Войти через Google
+                </Button>
+              </Card>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-3xl font-bold neon-glow text-primary">Профиль</h2>
+                  <Button variant="outline" onClick={handleLogout} className="border-destructive/50 hover:border-destructive">
+                    <Icon name="LogOut" className="mr-2 h-4 w-4" />
+                    Выйти
+                  </Button>
                 </div>
-              </CardHeader>
-            </Card>
+                
+                <Card className="mb-6 bg-card/50 backdrop-blur-sm border-primary/20">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <Avatar className="h-20 w-20 neon-border">
+                          {user?.avatar ? (
+                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <AvatarFallback className="bg-primary/20 text-primary text-2xl">
+                              {user?.name.charAt(0)}
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                        <div>
+                          <CardTitle className="text-2xl text-primary">{user?.name}</CardTitle>
+                          <CardDescription className="text-foreground/70">{user?.email}</CardDescription>
+                          <Badge className="mt-2 bg-secondary/20 text-secondary border-secondary">
+                            <Icon name="Shield" className="h-3 w-3 mr-1" />
+                            Проверенный аккаунт
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">Куплено аккаунтов</p>
+                        <p className="text-3xl font-bold text-primary neon-glow">{purchaseHistory.length}</p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </Card>
 
-            <Card className="bg-card/50 backdrop-blur-sm border-primary/20 neon-border-purple">
-              <CardHeader>
-                <CardTitle className="text-2xl text-secondary neon-glow">Баланс</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-5xl font-bold text-primary neon-glow mb-6">
-                  {balance} ₽
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <Card className="bg-card/50 backdrop-blur-sm border-primary/20 neon-border-purple">
+                    <CardHeader>
+                      <CardTitle className="text-2xl text-secondary neon-glow">Баланс</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-5xl font-bold text-primary neon-glow mb-6">
+                        {balance} ₽
+                      </div>
+                      
+                      <Separator className="my-6" />
+                      
+                      <Tabs defaultValue="card" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="card">Карта</TabsTrigger>
+                          <TabsTrigger value="crypto">Электронные</TabsTrigger>
+                        </TabsList>
+                        
+                        <TabsContent value="card" className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="amount">Сумма пополнения</Label>
+                            <Input
+                              id="amount"
+                              type="number"
+                              placeholder="Введите сумму"
+                              value={topUpAmount}
+                              onChange={(e) => setTopUpAmount(e.target.value)}
+                              className="border-primary/30 focus:border-primary"
+                            />
+                          </div>
+                          <Button 
+                            className="w-full neon-border h-12"
+                            onClick={handleTopUp}
+                          >
+                            <Icon name="CreditCard" className="mr-2 h-5 w-5" />
+                            Пополнить картой
+                          </Button>
+                        </TabsContent>
+                        
+                        <TabsContent value="crypto" className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="amount2">Сумма пополнения</Label>
+                            <Input
+                              id="amount2"
+                              type="number"
+                              placeholder="Введите сумму"
+                              value={topUpAmount}
+                              onChange={(e) => setTopUpAmount(e.target.value)}
+                              className="border-primary/30 focus:border-primary"
+                            />
+                          </div>
+                          <Button 
+                            className="w-full neon-border-purple h-12"
+                            onClick={handleTopUp}
+                          >
+                            <Icon name="Wallet" className="mr-2 h-5 w-5" />
+                            Пополнить электронным кошельком
+                          </Button>
+                        </TabsContent>
+                      </Tabs>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
+                    <CardHeader>
+                      <CardTitle className="text-2xl text-primary">Статистика</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Icon name="ShoppingBag" className="h-5 w-5 text-primary" />
+                          <span className="text-foreground/80">Всего покупок</span>
+                        </div>
+                        <span className="text-xl font-bold text-primary">{purchaseHistory.length}</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Icon name="DollarSign" className="h-5 w-5 text-secondary" />
+                          <span className="text-foreground/80">Потрачено</span>
+                        </div>
+                        <span className="text-xl font-bold text-secondary">
+                          {purchaseHistory.reduce((sum, acc) => sum + acc.price, 0)} ₽
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Icon name="Star" className="h-5 w-5 text-primary" />
+                          <span className="text-foreground/80">Средний рейтинг</span>
+                        </div>
+                        <span className="text-xl font-bold text-primary">
+                          {purchaseHistory.length > 0 
+                            ? (purchaseHistory.reduce((sum, acc) => sum + acc.rating, 0) / purchaseHistory.length).toFixed(1)
+                            : '0.0'
+                          }
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-                
-                <Separator className="my-6" />
-                
-                <Tabs defaultValue="card" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="card">Карта</TabsTrigger>
-                    <TabsTrigger value="crypto">Электронные</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="card" className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="amount">Сумма пополнения</Label>
-                      <Input
-                        id="amount"
-                        type="number"
-                        placeholder="Введите сумму"
-                        value={topUpAmount}
-                        onChange={(e) => setTopUpAmount(e.target.value)}
-                        className="border-primary/30 focus:border-primary"
-                      />
-                    </div>
-                    <Button 
-                      className="w-full neon-border h-12"
-                      onClick={handleTopUp}
-                    >
-                      <Icon name="CreditCard" className="mr-2 h-5 w-5" />
-                      Пополнить картой
-                    </Button>
-                  </TabsContent>
-                  
-                  <TabsContent value="crypto" className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="amount2">Сумма пополнения</Label>
-                      <Input
-                        id="amount2"
-                        type="number"
-                        placeholder="Введите сумму"
-                        value={topUpAmount}
-                        onChange={(e) => setTopUpAmount(e.target.value)}
-                        className="border-primary/30 focus:border-primary"
-                      />
-                    </div>
-                    <Button 
-                      className="w-full neon-border-purple h-12"
-                      onClick={handleTopUp}
-                    >
-                      <Icon name="Wallet" className="mr-2 h-5 w-5" />
-                      Пополнить электронным кошельком
-                    </Button>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
+
+                {purchaseHistory.length > 0 && (
+                  <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
+                    <CardHeader>
+                      <CardTitle className="text-2xl text-primary">История покупок</CardTitle>
+                      <CardDescription>Ваши приобретённые аккаунты</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-[400px]">
+                        <div className="space-y-4">
+                          {purchaseHistory.map((account, idx) => (
+                            <Card key={idx} className="bg-background/50 border-primary/10">
+                              <CardContent className="flex items-center justify-between p-4">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-20 h-12 rounded overflow-hidden">
+                                    <img 
+                                      src={account.image} 
+                                      alt={account.game}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-bold text-primary">{account.game}</h4>
+                                    <p className="text-sm text-muted-foreground">{account.rank} • Уровень {account.level}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <Badge variant="outline" className="border-secondary text-secondary">
+                                    ★ {account.rating}
+                                  </Badge>
+                                  <div className="text-lg font-bold text-primary">{account.price} ₽</div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            )}
           </div>
         )}
       </main>
@@ -692,6 +871,51 @@ const Index = () => {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent className="max-w-md bg-card/95 backdrop-blur-xl border-primary/30 neon-border">
+          <DialogHeader>
+            <DialogTitle className="text-3xl text-primary neon-glow text-center">
+              Добро пожаловать!
+            </DialogTitle>
+            <DialogDescription className="text-center text-foreground/80">
+              Войдите для доступа ко всем функциям
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-6">
+            <Button 
+              className="w-full h-14 neon-border text-lg"
+              onClick={handleGoogleLogin}
+            >
+              <div className="flex items-center gap-3">
+                <svg className="w-6 h-6" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Войти через Google
+              </div>
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <Separator />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                  Безопасный вход
+                </span>
+              </div>
+            </div>
+
+            <div className="text-center text-sm text-muted-foreground">
+              <p>Ваши данные защищены и используются только для авторизации</p>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
