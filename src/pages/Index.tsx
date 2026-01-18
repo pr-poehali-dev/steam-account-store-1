@@ -23,6 +23,8 @@ type Account = {
   reviews: number;
   inventory: string[];
   badges: string[];
+  description: string;
+  image: string;
 };
 
 const generateAccounts = (): Account[] => {
@@ -30,23 +32,49 @@ const generateAccounts = (): Account[] => {
   const ranks = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master', 'Grandmaster', 'Challenger'];
   const inventory = ['Knife', 'AWP Asiimov', 'AK-47 Redline', 'Glock Fade', 'M4A4 Howl', 'Butterfly Knife'];
   const badges = ['Prime', 'Verified', 'Ranked', 'Achievements', 'Skins'];
+  
+  const descriptions = [
+    'Прокачанный аккаунт с отличной статистикой. Много редких скинов и достижений.',
+    'Аккаунт с Prime статусом. Все операции пройдены, богатый инвентарь.',
+    'Высокий ранг, много часов игры. Идеально для серьёзных игроков.',
+    'Аккаунт в отличном состоянии, без банов. Множество редких предметов.',
+    'Проверенный аккаунт с хорошей репутацией и уникальными скинами.',
+  ];
 
-  return Array.from({ length: 100 }, (_, i) => ({
-    id: i + 1,
-    game: games[Math.floor(Math.random() * games.length)],
-    rank: ranks[Math.floor(Math.random() * ranks.length)],
-    level: Math.floor(Math.random() * 100) + 10,
-    hours: Math.floor(Math.random() * 3000) + 100,
-    price: Math.floor(Math.random() * 15000) + 500,
-    rating: parseFloat((Math.random() * 2 + 3).toFixed(1)),
-    reviews: Math.floor(Math.random() * 150) + 5,
-    inventory: Array.from({ length: Math.floor(Math.random() * 4) + 2 }, () => 
-      inventory[Math.floor(Math.random() * inventory.length)]
-    ),
-    badges: Array.from({ length: Math.floor(Math.random() * 3) + 1 }, () => 
-      badges[Math.floor(Math.random() * badges.length)]
-    )
-  }));
+  const gameImages: Record<string, string> = {
+    'CS:GO': 'https://cdn.akamai.steamstatic.com/steam/apps/730/header.jpg',
+    'Dota 2': 'https://cdn.akamai.steamstatic.com/steam/apps/570/header.jpg',
+    'PUBG': 'https://cdn.akamai.steamstatic.com/steam/apps/578080/header.jpg',
+    'Apex Legends': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1172470/header.jpg',
+    'Valorant': 'https://images.contentstack.io/v3/assets/bltb6530b271fddd0b1/blt5c61f2bd82e247a1/5eb26f133b09ef0e76f3ea78/V_AGENTS_587x408_Jett.jpg',
+    'Rainbow Six': 'https://cdn.akamai.steamstatic.com/steam/apps/359550/header.jpg',
+    'Overwatch': 'https://images.blz-contentstack.com/v3/assets/blt2477dcaf4ebd440c/blt5159232b9f7bc88b/62ea89e7e7799a109d1f0353/overwatch-logo-ow2.png',
+    'Rust': 'https://cdn.akamai.steamstatic.com/steam/apps/252490/header.jpg',
+    'GTA V': 'https://cdn.akamai.steamstatic.com/steam/apps/271590/header.jpg',
+    'ARK': 'https://cdn.akamai.steamstatic.com/steam/apps/346110/header.jpg',
+  };
+
+  return Array.from({ length: 100 }, (_, i) => {
+    const game = games[Math.floor(Math.random() * games.length)];
+    return {
+      id: i + 1,
+      game,
+      rank: ranks[Math.floor(Math.random() * ranks.length)],
+      level: Math.floor(Math.random() * 100) + 10,
+      hours: Math.floor(Math.random() * 3000) + 100,
+      price: Math.floor(Math.random() * 400) + 50,
+      rating: parseFloat((Math.random() * 2 + 3).toFixed(1)),
+      reviews: Math.floor(Math.random() * 150) + 5,
+      inventory: Array.from({ length: Math.floor(Math.random() * 4) + 2 }, () => 
+        inventory[Math.floor(Math.random() * inventory.length)]
+      ),
+      badges: Array.from({ length: Math.floor(Math.random() * 3) + 1 }, () => 
+        badges[Math.floor(Math.random() * badges.length)]
+      ),
+      description: descriptions[Math.floor(Math.random() * descriptions.length)],
+      image: gameImages[game] || 'https://via.placeholder.com/460x215/0a0a0f/00f0ff?text=Steam+Account'
+    };
+  });
 };
 
 const Index = () => {
@@ -55,7 +83,7 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [balance, setBalance] = useState(5000);
-  const [currentView, setCurrentView] = useState<'catalog' | 'cart' | 'profile'>('catalog');
+  const [currentView, setCurrentView] = useState<'home' | 'catalog' | 'cart' | 'profile'>('home');
   const [topUpAmount, setTopUpAmount] = useState('');
   const [selectedGame, setSelectedGame] = useState<string>('all');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 20000]);
@@ -128,6 +156,15 @@ const Index = () => {
             
             <div className="flex items-center gap-4">
               <Button 
+                variant={currentView === 'home' ? 'default' : 'ghost'}
+                onClick={() => setCurrentView('home')}
+                className="neon-border"
+              >
+                <Icon name="Home" className="mr-2 h-4 w-4" />
+                Главная
+              </Button>
+
+              <Button 
                 variant={currentView === 'catalog' ? 'default' : 'ghost'}
                 onClick={() => setCurrentView('catalog')}
                 className="neon-border"
@@ -161,6 +198,110 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {currentView === 'home' && (
+          <div className="space-y-12">
+            <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden rounded-2xl border border-primary/30">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-secondary/20 cyber-grid"></div>
+              <div className="relative z-10 text-center space-y-8 px-4">
+                <h1 className="text-7xl md:text-9xl font-bold neon-glow">
+                  STEAM<span className="text-secondary">SHOP</span>
+                </h1>
+                <p className="text-2xl md:text-3xl text-foreground/80 max-w-3xl mx-auto">
+                  Магазин игровых аккаунтов премиум качества
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                  <Button 
+                    size="lg" 
+                    onClick={() => setCurrentView('catalog')}
+                    className="neon-border text-xl h-16 px-8"
+                  >
+                    <Icon name="Store" className="mr-2 h-6 w-6" />
+                    Перейти в каталог
+                  </Button>
+                  <Button 
+                    size="lg" 
+                    variant="outline"
+                    onClick={() => setCurrentView('profile')}
+                    className="neon-border-purple text-xl h-16 px-8"
+                  >
+                    <Icon name="Wallet" className="mr-2 h-6 w-6" />
+                    Пополнить баланс
+                  </Button>
+                </div>
+              </div>
+            </section>
+
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="p-6 bg-card/50 backdrop-blur-sm border-primary/20 text-center hover:neon-border transition-all">
+                <Icon name="Shield" className="h-12 w-12 mx-auto mb-4 text-primary" />
+                <h3 className="text-xl font-bold mb-2 text-primary">Безопасность</h3>
+                <p className="text-muted-foreground">Все аккаунты проверены и защищены</p>
+              </Card>
+              
+              <Card className="p-6 bg-card/50 backdrop-blur-sm border-primary/20 text-center hover:neon-border-purple transition-all">
+                <Icon name="Zap" className="h-12 w-12 mx-auto mb-4 text-secondary" />
+                <h3 className="text-xl font-bold mb-2 text-secondary">Мгновенно</h3>
+                <p className="text-muted-foreground">Получите доступ сразу после оплаты</p>
+              </Card>
+              
+              <Card className="p-6 bg-card/50 backdrop-blur-sm border-primary/20 text-center hover:neon-border transition-all">
+                <Icon name="DollarSign" className="h-12 w-12 mx-auto mb-4 text-primary" />
+                <h3 className="text-xl font-bold mb-2 text-primary">Низкие цены</h3>
+                <p className="text-muted-foreground">От 50₽ за прокачанный аккаунт</p>
+              </Card>
+            </section>
+
+            <section>
+              <h2 className="text-4xl font-bold mb-8 text-center neon-glow text-primary">
+                Популярные предложения
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {accounts.slice(0, 8).map((account) => (
+                  <Card 
+                    key={account.id} 
+                    className="group cursor-pointer transition-all duration-300 hover:scale-105 hover:neon-border bg-card/50 backdrop-blur-sm border-primary/20"
+                    onClick={() => setSelectedAccount(account)}
+                  >
+                    <div className="aspect-video overflow-hidden rounded-t-lg">
+                      <img 
+                        src={account.image} 
+                        alt={account.game}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                      />
+                    </div>
+                    <CardHeader>
+                      <CardTitle className="text-primary group-hover:neon-glow transition-all">
+                        {account.game}
+                      </CardTitle>
+                      <CardDescription className="text-foreground/70">
+                        {account.rank}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardFooter className="flex items-center justify-between">
+                      <div className="text-2xl font-bold text-primary neon-glow">
+                        {account.price} ₽
+                      </div>
+                      <Badge variant="outline" className="border-secondary text-secondary">
+                        ★ {account.rating}
+                      </Badge>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+              <div className="text-center mt-8">
+                <Button 
+                  size="lg"
+                  onClick={() => setCurrentView('catalog')}
+                  className="neon-border"
+                >
+                  Показать все {accounts.length} аккаунтов
+                  <Icon name="ArrowRight" className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
+            </section>
+          </div>
+        )}
+
         {currentView === 'catalog' && (
           <>
             <div className="mb-8 space-y-6">
@@ -243,9 +384,16 @@ const Index = () => {
               {filteredAccounts.map((account) => (
                 <Card 
                   key={account.id} 
-                  className="group cursor-pointer transition-all duration-300 hover:scale-105 hover:neon-border bg-card/50 backdrop-blur-sm border-primary/20"
+                  className="group cursor-pointer transition-all duration-300 hover:scale-105 hover:neon-border bg-card/50 backdrop-blur-sm border-primary/20 overflow-hidden"
                   onClick={() => setSelectedAccount(account)}
                 >
+                  <div className="aspect-video overflow-hidden">
+                    <img 
+                      src={account.image} 
+                      alt={account.game}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    />
+                  </div>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
@@ -468,6 +616,21 @@ const Index = () => {
               </DialogHeader>
               
               <div className="space-y-6">
+                <div className="aspect-video overflow-hidden rounded-lg border border-primary/30">
+                  <img 
+                    src={selectedAccount.image} 
+                    alt={selectedAccount.game}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                <div>
+                  <h4 className="font-bold mb-2 text-secondary">Описание</h4>
+                  <p className="text-foreground/80 leading-relaxed">{selectedAccount.description}</p>
+                </div>
+
+                <Separator />
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center gap-3">
                     <Icon name="Clock" className="h-5 w-5 text-secondary" />
