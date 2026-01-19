@@ -1,0 +1,48 @@
+{
+  "tests": [
+    {
+      "name": "Valid support message",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "name": "Иван Иванов",
+        "email": "test@example.com",
+        "message": "Тестовое сообщение поддержки"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Missing fields",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "name": "Иван",
+        "email": ""
+      },
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Invalid email format",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "name": "Иван Иванов",
+        "email": "invalid-email",
+        "message": "Сообщение"
+      },
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

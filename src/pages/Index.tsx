@@ -273,12 +273,22 @@ const Index = () => {
               
               <Button 
                 variant="ghost"
+                onClick={() => window.location.href = '/support'}
+                className="neon-border-purple"
+                size={isMobile ? "icon" : "default"}
+              >
+                <Icon name="Headphones" className={isMobile ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+                {!isMobile && "Поддержка"}
+              </Button>
+              
+              <Button 
+                variant="ghost"
                 onClick={() => window.open('https://vk.com/steamshop_nnd', '_blank')}
                 className="neon-border-purple"
                 size={isMobile ? "icon" : "default"}
               >
                 <Icon name="MessageCircle" className={isMobile ? "h-4 w-4" : "mr-2 h-4 w-4"} />
-                {!isMobile && "Связаться"}
+                {!isMobile && "VK"}
               </Button>
             </div>
           </div>
