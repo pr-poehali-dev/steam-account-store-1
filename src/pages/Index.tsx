@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,8 +18,32 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
-import { jwtDecode } from 'jwt-decode';
+
+declare global {
+  interface Window {
+    google: {
+      accounts: {
+        id: {
+          initialize: (config: {
+            client_id: string;
+            callback: (response: { credential: string }) => void;
+          }) => void;
+          renderButton: (
+            parent: HTMLElement,
+            options: {
+              theme?: string;
+              size?: string;
+              text?: string;
+              width?: string;
+              locale?: string;
+            }
+          ) => void;
+          prompt: () => void;
+        };
+      };
+    };
+  }
+}
 
 interface GoogleUserInfo {
   email: string;
@@ -162,6 +186,7 @@ const Index = () => {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [purchasedAccount, setPurchasedAccount] = useState<Account | null>(null);
+  const googleButtonRef = useRef<HTMLDivElement>(null);
 
   const allCategories = useMemo(() => {
     return ['all', 'budget', 'standard', 'premium', 'ultimate'];
@@ -253,27 +278,54 @@ const Index = () => {
     }
   }, []);
 
-  const handleGoogleLogin = (credentialResponse: CredentialResponse) => {
+  useEffect(() => {
+    if (showAuthDialog && googleButtonRef.current && window.google) {
+      window.google.accounts.id.initialize({
+        client_id: '101026698-o6rnmvv9b9akf5lhgju51a9l6c6pfssu.apps.googleusercontent.com',
+        callback: handleGoogleLogin
+      });
+      
+      window.google.accounts.id.renderButton(
+        googleButtonRef.current,
+        {
+          theme: 'filled_blue',
+          size: 'large',
+          text: 'continue_with',
+          width: '300',
+          locale: 'ru'
+        }
+      );
+    }
+  }, [showAuthDialog]);
+
+  const handleGoogleLogin = (response: { credential: string }) => {
     try {
-      if (credentialResponse.credential) {
-        const decoded: GoogleUserInfo = jwtDecode(credentialResponse.credential);
-        
-        const userData = {
-          name: decoded.name,
-          email: decoded.email,
-          avatar: decoded.picture
-        };
-        
-        setIsAuthenticated(true);
-        setUser(userData);
-        localStorage.setItem('steamshop_user', JSON.stringify(userData));
-        setShowAuthDialog(false);
-        
-        toast({
-          title: "Вход выполнен",
-          description: `Добро пожаловать, ${decoded.name}!`,
-        });
-      }
+      const base64Url = response.credential.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      
+      const decoded: GoogleUserInfo = JSON.parse(jsonPayload);
+      
+      const userData = {
+        name: decoded.name,
+        email: decoded.email,
+        avatar: decoded.picture
+      };
+      
+      setIsAuthenticated(true);
+      setUser(userData);
+      localStorage.setItem('steamshop_user', JSON.stringify(userData));
+      setShowAuthDialog(false);
+      
+      toast({
+        title: "Вход выполнен",
+        description: `Добро пожаловать, ${decoded.name}!`,
+      });
     } catch (error) {
       console.error('Ошибка авторизации:', error);
       toast({
@@ -1100,23 +1152,7 @@ const Index = () => {
           </DialogHeader>
           
           <div className="space-y-4 py-6">
-            <div className="flex justify-center">
-              <GoogleLogin
-                onSuccess={handleGoogleLogin}
-                onError={() => {
-                  toast({
-                    title: "Ошибка авторизации",
-                    description: "Не удалось войти через Google",
-                    variant: "destructive",
-                  });
-                }}
-                theme="filled_blue"
-                size="large"
-                text="continue_with"
-                width="300"
-                locale="ru"
-              />
-            </div>
+            <div ref={googleButtonRef} className="flex justify-center"></div>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
