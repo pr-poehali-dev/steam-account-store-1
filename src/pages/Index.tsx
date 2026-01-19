@@ -1,14 +1,11 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { toast } from '@/hooks/use-toast';
 import { useDeviceMode } from '@/hooks/use-device-mode';
@@ -19,41 +16,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-declare global {
-  interface Window {
-    google: {
-      accounts: {
-        id: {
-          initialize: (config: {
-            client_id: string;
-            callback: (response: { credential: string }) => void;
-          }) => void;
-          renderButton: (
-            parent: HTMLElement,
-            options: {
-              theme?: string;
-              size?: string;
-              text?: string;
-              width?: string;
-              locale?: string;
-            }
-          ) => void;
-          prompt: () => void;
-        };
-      };
-    };
-  }
-}
-
-interface GoogleUserInfo {
-  email: string;
-  name: string;
-  picture: string;
-  sub: string;
-}
-
 type Account = {
   id: number;
+  code: string;
   title: string;
   games: string[];
   gamesCount: number;
@@ -148,8 +113,11 @@ const generateAccounts = (): Account[] => {
       ultimate: 'Ультимейт'
     };
 
+    const code = `${template.category.substring(0, 2).toUpperCase()}${String(i + 1).padStart(3, '0')}`;
+    
     return {
       id: i + 1,
+      code,
       title: `Steam аккаунт "${categoryNames[template.category]}" — ${gamesCount} игр`,
       games: selectedGames,
       gamesCount,
@@ -172,21 +140,13 @@ const generateAccounts = (): Account[] => {
 const Index = () => {
   const { mode, isMobile, setDeviceMode } = useDeviceMode();
   const [accounts] = useState<Account[]>(generateAccounts());
-  const [cart, setCart] = useState<Account[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [balance, setBalance] = useState(5000);
-  const [currentView, setCurrentView] = useState<'home' | 'catalog' | 'cart' | 'profile'>('home');
-  const [topUpAmount, setTopUpAmount] = useState('');
+  const [currentView, setCurrentView] = useState<'home' | 'catalog' | 'cart'>('home');
+  const [showBuyInstructionDialog, setShowBuyInstructionDialog] = useState(false);
+  const [selectedPurchaseAccount, setSelectedPurchaseAccount] = useState<Account | null>(null);
   const [selectedGame, setSelectedGame] = useState<string>('all');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 20000]);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<{ name: string; email: string; avatar: string } | null>(null);
-  const [purchaseHistory, setPurchaseHistory] = useState<Account[]>([]);
-  const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
-  const [purchasedAccount, setPurchasedAccount] = useState<Account | null>(null);
-  const googleButtonRef = useRef<HTMLDivElement>(null);
 
   const allCategories = useMemo(() => {
     return ['all', 'budget', 'standard', 'premium', 'ultimate'];
@@ -200,161 +160,17 @@ const Index = () => {
     return matchesSearch && matchesCategory && matchesPrice;
   });
 
-  const addToCart = (account: Account) => {
-    if (!cart.find(item => item.id === account.id)) {
-      setCart([...cart, account]);
-      toast({
-        title: "Добавлено в корзину",
-        description: account.title,
-      });
-    }
+  const handleBuyClick = (account: Account) => {
+    setSelectedPurchaseAccount(account);
+    setShowBuyInstructionDialog(true);
   };
 
-  const removeFromCart = (accountId: number) => {
-    setCart(cart.filter(item => item.id !== accountId));
-  };
-
-  const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
-
-  const handlePurchase = () => {
-    if (!isAuthenticated) {
-      setShowAuthDialog(true);
-      toast({
-        title: "Требуется авторизация",
-        description: "Войдите в аккаунт для покупки",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (balance >= cartTotal) {
-      setBalance(balance - cartTotal);
-      setPurchaseHistory([...purchaseHistory, ...cart]);
-      if (cart.length === 1) {
-        setPurchasedAccount(cart[0]);
-        setShowSuccessDialog(true);
-      } else {
-        toast({
-          title: "Покупка успешна!",
-          description: `Вы приобрели ${cart.length} аккаунт(ов). Данные отправлены на email.`,
-        });
-      }
-      setCart([]);
-    } else {
-      toast({
-        title: "Недостаточно средств",
-        description: "Пополните баланс",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleTopUp = () => {
-    if (!isAuthenticated) {
-      setShowAuthDialog(true);
-      toast({
-        title: "Требуется авторизация",
-        description: "Войдите в аккаунт для пополнения баланса",
-        variant: "destructive",
-      });
-      return;
-    }
-    const amount = parseInt(topUpAmount);
-    if (amount > 0) {
-      setBalance(balance + amount);
-      setTopUpAmount('');
-      toast({
-        title: "Баланс пополнен",
-        description: `+${amount} ₽`,
-      });
-    }
-  };
-
-  useEffect(() => {
-    const savedUser = localStorage.getItem('steamshop_user');
-    if (savedUser) {
-      const userData = JSON.parse(savedUser);
-      setIsAuthenticated(true);
-      setUser(userData);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (showAuthDialog && googleButtonRef.current) {
-      const initGoogleButton = () => {
-        if (window.google && window.google.accounts) {
-          console.log('Google API loaded, initializing button...');
-          window.google.accounts.id.initialize({
-            client_id: '101026698-o6rnmvv9b9akf5lhgju51a9l6c6pfssu.apps.googleusercontent.com',
-            callback: handleGoogleLogin
-          });
-          
-          window.google.accounts.id.renderButton(
-            googleButtonRef.current!,
-            {
-              theme: 'filled_blue',
-              size: 'large',
-              text: 'continue_with',
-              width: '300',
-              locale: 'ru'
-            }
-          );
-        } else {
-          console.log('Google API not loaded yet, waiting...');
-          setTimeout(initGoogleButton, 100);
-        }
-      };
-      
-      initGoogleButton();
-    }
-  }, [showAuthDialog]);
-
-  const handleGoogleLogin = (response: { credential: string }) => {
-    try {
-      const base64Url = response.credential.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
-      
-      const decoded: GoogleUserInfo = JSON.parse(jsonPayload);
-      
-      const userData = {
-        name: decoded.name,
-        email: decoded.email,
-        avatar: decoded.picture
-      };
-      
-      setIsAuthenticated(true);
-      setUser(userData);
-      localStorage.setItem('steamshop_user', JSON.stringify(userData));
-      setShowAuthDialog(false);
-      
-      toast({
-        title: "Вход выполнен",
-        description: `Добро пожаловать, ${decoded.name}!`,
-      });
-    } catch (error) {
-      console.error('Ошибка авторизации:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось войти",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUser(null);
-    setPurchaseHistory([]);
-    setBalance(5000);
-    localStorage.removeItem('steamshop_user');
+  const handleProceedToVK = () => {
+    window.open('https://vk.com/steamshop_nnd', '_blank');
+    setShowBuyInstructionDialog(false);
     toast({
-      title: "Выход выполнен",
-      description: "До скорой встречи!",
+      title: "Переход в VK",
+      description: "Не забудьте указать код товара!",
     });
   };
 
@@ -410,45 +226,14 @@ const Index = () => {
               </Button>
               
               <Button 
-                variant={currentView === 'cart' ? 'default' : 'ghost'}
-                onClick={() => setCurrentView('cart')}
-                className="relative neon-border-purple"
+                variant="ghost"
+                onClick={() => window.open('https://vk.com/steamshop_nnd', '_blank')}
+                className="neon-border-purple"
                 size={isMobile ? "icon" : "default"}
               >
-                <Icon name="ShoppingCart" className={isMobile ? "h-4 w-4" : "mr-2 h-4 w-4"} />
-                {!isMobile && "Корзина"}
-                {cart.length > 0 && (
-                  <Badge className={`${isMobile ? 'absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs' : 'ml-2'} bg-secondary text-secondary-foreground`}>
-                    {cart.length}
-                  </Badge>
-                )}
+                <Icon name="MessageCircle" className={isMobile ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+                {!isMobile && "Связаться"}
               </Button>
-              
-              {isAuthenticated ? (
-                <Button 
-                  variant={currentView === 'profile' ? 'default' : 'ghost'}
-                  onClick={() => setCurrentView('profile')}
-                  className="flex items-center gap-2"
-                  size={isMobile ? "icon" : "default"}
-                >
-                  <Avatar className="h-6 w-6">
-                    {user?.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
-                    <AvatarFallback className="text-xs bg-primary/20 text-primary">
-                      {user?.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  {!isMobile && "Профиль"}
-                </Button>
-              ) : (
-                <Button 
-                  onClick={() => setShowAuthDialog(true)}
-                  className="neon-border"
-                  size={isMobile ? "icon" : "default"}
-                >
-                  <Icon name="LogIn" className={isMobile ? "h-4 w-4" : "mr-2 h-4 w-4"} />
-                  {!isMobile && "Войти"}
-                </Button>
-              )}
             </div>
           </div>
         </div>
@@ -457,55 +242,92 @@ const Index = () => {
       <main className="container mx-auto px-4 py-8">
         {currentView === 'home' && (
           <div className="space-y-12">
-            <section className={`relative ${isMobile ? 'min-h-[50vh]' : 'min-h-[70vh]'} flex items-center justify-center overflow-hidden rounded-2xl border border-primary/30`}>
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-secondary/20 cyber-grid"></div>
-              <div className="relative z-10 text-center space-y-4 md:space-y-8 px-4">
-                <h1 className={`${isMobile ? 'text-4xl' : 'text-7xl md:text-9xl'} font-bold neon-glow`}>
+            <section className={`relative ${isMobile ? 'min-h-[60vh]' : 'min-h-[80vh]'} flex items-center justify-center overflow-hidden rounded-2xl border-2 border-primary/40`}>
+              <div className="absolute inset-0">
+                <img 
+                  src="https://cdn.poehali.dev/projects/db4e1f04-0046-48d1-9285-137548b5fdfa/files/f8ac1226-b287-4022-9b74-72c978445ff3.jpg"
+                  alt="Gaming Hero"
+                  className="w-full h-full object-cover opacity-40"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent"></div>
+              </div>
+              <div className="relative z-10 text-center space-y-6 md:space-y-10 px-4">
+                <h1 className={`${isMobile ? 'text-5xl' : 'text-8xl md:text-9xl'} font-bold neon-glow tracking-wider`}>
                   STEAM<span className="text-secondary">SHOP</span>
                 </h1>
-                <p className={`${isMobile ? 'text-base' : 'text-2xl md:text-3xl'} text-foreground/80 max-w-3xl mx-auto`}>
-                  Steam аккаунты с платными играми. Полный доступ сразу после оплаты
+                <p className={`${isMobile ? 'text-lg' : 'text-3xl md:text-4xl'} text-foreground/90 max-w-4xl mx-auto font-semibold`}>
+                  🎮 Лучшие Steam аккаунты с играми<br/>
+                  Полный доступ · Мгновенная доставка · Низкие цены
                 </p>
-                <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-center">
+                <div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center items-center pt-4">
                   <Button 
                     size={isMobile ? "default" : "lg"}
                     onClick={() => setCurrentView('catalog')}
-                    className={`neon-border ${isMobile ? 'text-base h-12 px-6 w-full sm:w-auto' : 'text-xl h-16 px-8'}`}
+                    className={`neon-border bg-primary hover:bg-primary/90 ${isMobile ? 'text-lg h-14 px-8 w-full sm:w-auto' : 'text-2xl h-20 px-12'}`}
                   >
-                    <Icon name="Store" className={`mr-2 ${isMobile ? 'h-4 w-4' : 'h-6 w-6'}`} />
-                    Перейти в каталог
+                    <Icon name="Store" className={`mr-3 ${isMobile ? 'h-5 w-5' : 'h-7 w-7'}`} />
+                    Открыть каталог
                   </Button>
                   <Button 
                     size={isMobile ? "default" : "lg"}
                     variant="outline"
-                    onClick={() => setCurrentView('profile')}
-                    className={`neon-border-purple ${isMobile ? 'text-base h-12 px-6 w-full sm:w-auto' : 'text-xl h-16 px-8'}`}
+                    onClick={() => window.open('https://vk.com/steamshop_nnd', '_blank')}
+                    className={`neon-border-purple border-2 ${isMobile ? 'text-lg h-14 px-8 w-full sm:w-auto' : 'text-2xl h-20 px-12'}`}
                   >
-                    <Icon name="Wallet" className={`mr-2 ${isMobile ? 'h-4 w-4' : 'h-6 w-6'}`} />
-                    Пополнить баланс
+                    <Icon name="MessageCircle" className={`mr-3 ${isMobile ? 'h-5 w-5' : 'h-7 w-7'}`} />
+                    Связаться с нами
                   </Button>
                 </div>
               </div>
             </section>
 
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="p-6 bg-card/50 backdrop-blur-sm border-primary/20 text-center hover:neon-border transition-all">
-                <Icon name="Shield" className="h-12 w-12 mx-auto mb-4 text-primary" />
-                <h3 className="text-xl font-bold mb-2 text-primary">Безопасность</h3>
-                <p className="text-muted-foreground">Все аккаунты проверены и защищены</p>
-              </Card>
+            <section id="features" className="space-y-8">
+              <h2 className={`${isMobile ? 'text-3xl' : 'text-5xl'} font-bold text-center neon-glow text-primary mb-12`}>
+                Почему выбирают нас?
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="p-8 bg-card/50 backdrop-blur-sm border-primary/20 text-center hover:neon-border transition-all hover:scale-105">
+                  <Icon name="Shield" className="h-16 w-16 mx-auto mb-6 text-primary" />
+                  <h3 className="text-2xl font-bold mb-3 text-primary">100% Безопасность</h3>
+                  <p className="text-muted-foreground text-base">Все аккаунты проверены, без банов и ограничений. Гарантия качества!</p>
+                </Card>
+                
+                <Card className="p-8 bg-card/50 backdrop-blur-sm border-primary/20 text-center hover:neon-border-purple transition-all hover:scale-105">
+                  <Icon name="Zap" className="h-16 w-16 mx-auto mb-6 text-secondary" />
+                  <h3 className="text-2xl font-bold mb-3 text-secondary">Мгновенная выдача</h3>
+                  <p className="text-muted-foreground text-base">Получите полный доступ к аккаунту сразу после связи с нами</p>
+                </Card>
+                
+                <Card className="p-8 bg-card/50 backdrop-blur-sm border-primary/20 text-center hover:neon-border transition-all hover:scale-105">
+                  <Icon name="DollarSign" className="h-16 w-16 mx-auto mb-6 text-primary" />
+                  <h3 className="text-2xl font-bold mb-3 text-primary">Лучшие цены</h3>
+                  <p className="text-muted-foreground text-base">Аккаунты от 299₽ · Большой выбор категорий · Скидки постоянным клиентам</p>
+                </Card>
+              </div>
               
-              <Card className="p-6 bg-card/50 backdrop-blur-sm border-primary/20 text-center hover:neon-border-purple transition-all">
-                <Icon name="Zap" className="h-12 w-12 mx-auto mb-4 text-secondary" />
-                <h3 className="text-xl font-bold mb-2 text-secondary">Мгновенно</h3>
-                <p className="text-muted-foreground">Получите доступ сразу после оплаты</p>
-              </Card>
-              
-              <Card className="p-6 bg-card/50 backdrop-blur-sm border-primary/20 text-center hover:neon-border transition-all">
-                <Icon name="DollarSign" className="h-12 w-12 mx-auto mb-4 text-primary" />
-                <h3 className="text-xl font-bold mb-2 text-primary">Низкие цены</h3>
-                <p className="text-muted-foreground">От 299₽ за Steam аккаунт с играми</p>
-              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                <Card className="p-8 bg-gradient-to-br from-primary/10 to-secondary/10 backdrop-blur-sm border-primary/30">
+                  <Icon name="Package" className="h-12 w-12 mb-4 text-primary" />
+                  <h3 className="text-xl font-bold mb-3 text-primary">Что входит в покупку?</h3>
+                  <ul className="space-y-2 text-foreground/80">
+                    <li className="flex items-center gap-2"><Icon name="Check" className="h-4 w-4 text-secondary" /> Логин и пароль Steam</li>
+                    <li className="flex items-center gap-2"><Icon name="Check" className="h-4 w-4 text-secondary" /> Email с полным доступом</li>
+                    <li className="flex items-center gap-2"><Icon name="Check" className="h-4 w-4 text-secondary" /> Все игры активированы</li>
+                    <li className="flex items-center gap-2"><Icon name="Check" className="h-4 w-4 text-secondary" /> Инструкция по смене данных</li>
+                  </ul>
+                </Card>
+                
+                <Card className="p-8 bg-gradient-to-br from-secondary/10 to-primary/10 backdrop-blur-sm border-secondary/30">
+                  <Icon name="HeartHandshake" className="h-12 w-12 mb-4 text-secondary" />
+                  <h3 className="text-xl font-bold mb-3 text-secondary">Наши гарантии</h3>
+                  <ul className="space-y-2 text-foreground/80">
+                    <li className="flex items-center gap-2"><Icon name="Check" className="h-4 w-4 text-primary" /> Быстрая поддержка 24/7</li>
+                    <li className="flex items-center gap-2"><Icon name="Check" className="h-4 w-4 text-primary" /> Замена при проблемах</li>
+                    <li className="flex items-center gap-2"><Icon name="Check" className="h-4 w-4 text-primary" /> Проверка перед продажей</li>
+                    <li className="flex items-center gap-2"><Icon name="Check" className="h-4 w-4 text-primary" /> Честные описания</li>
+                  </ul>
+                </Card>
+              </div>
             </section>
 
             <section>
@@ -527,9 +349,14 @@ const Index = () => {
                       />
                     </div>
                     <CardHeader className="space-y-2">
-                      <CardTitle className="text-sm md:text-base text-primary group-hover:neon-glow transition-all line-clamp-2">
-                        {account.title}
-                      </CardTitle>
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-sm md:text-base text-primary group-hover:neon-glow transition-all line-clamp-2 flex-1">
+                          {account.title}
+                        </CardTitle>
+                        <Badge className="bg-primary/20 text-primary border border-primary text-xs font-mono font-bold shrink-0">
+                          {account.code}
+                        </Badge>
+                      </div>
                       <CardDescription className="text-xs text-foreground/70">
                         {account.description}
                       </CardDescription>
@@ -665,15 +492,18 @@ const Index = () => {
                     />
                   </div>
                   <CardHeader>
-                    <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-sm text-primary group-hover:neon-glow transition-all line-clamp-2">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <CardTitle className="text-sm text-primary group-hover:neon-glow transition-all line-clamp-2 flex-1">
                         {account.title}
                       </CardTitle>
                       <Badge variant="outline" className="border-secondary text-secondary shrink-0">
                         ★ {account.rating}
                       </Badge>
                     </div>
-                    <CardDescription className="mt-2 text-xs text-foreground/70">
+                    <Badge className="bg-primary/20 text-primary border border-primary text-xs font-mono font-bold w-fit mb-2">
+                      Код: {account.code}
+                    </Badge>
+                    <CardDescription className="text-xs text-foreground/70">
                       {account.description}
                     </CardDescription>
                   </CardHeader>
@@ -716,11 +546,11 @@ const Index = () => {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        addToCart(account);
+                        handleBuyClick(account);
                       }}
-                      className="neon-border"
+                      className="neon-border bg-primary hover:bg-primary/90"
                     >
-                      <Icon name="ShoppingCart" className="h-4 w-4" />
+                      <Icon name="ShoppingBag" className="h-4 w-4" />
                     </Button>
                   </CardFooter>
                 </Card>
@@ -731,273 +561,23 @@ const Index = () => {
 
         {currentView === 'cart' && (
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold mb-6 neon-glow text-primary">Корзина</h2>
-            
-            {cart.length === 0 ? (
-              <Card className="p-12 text-center bg-card/50 backdrop-blur-sm border-primary/20">
-                <Icon name="ShoppingCart" className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-xl text-muted-foreground">Корзина пуста</p>
-                <Button onClick={() => setCurrentView('catalog')} className="mt-4 neon-border">
-                  Перейти к каталогу
-                </Button>
-              </Card>
-            ) : (
-              <>
-                <ScrollArea className="h-[500px] mb-6">
-                  <div className="space-y-4">
-                    {cart.map((account) => (
-                      <Card key={account.id} className="bg-card/50 backdrop-blur-sm border-primary/20">
-                        <CardContent className="flex items-center justify-between p-4 gap-4">
-                          <div className="flex-1">
-                            <h3 className="font-bold text-base md:text-lg text-primary line-clamp-1">{account.title}</h3>
-                            <p className="text-xs md:text-sm text-muted-foreground">{account.description}</p>
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {account.games.slice(0, 2).map((game, idx) => (
-                                <Badge key={idx} variant="outline" className="text-xs">
-                                  {game}
-                                </Badge>
-                              ))}
-                              {account.games.length > 2 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{account.games.length - 2}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 md:gap-4 shrink-0">
-                            <div className="text-lg md:text-xl font-bold text-primary">{account.price} ₽</div>
-                            <Button 
-                              variant="destructive" 
-                              size="sm"
-                              onClick={() => removeFromCart(account.id)}
-                            >
-                              <Icon name="Trash2" className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </ScrollArea>
-
-                <Card className="p-6 bg-card/50 backdrop-blur-sm border-primary/20 neon-border">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-xl">Итого:</span>
-                    <span className="text-3xl font-bold text-primary neon-glow">{cartTotal} ₽</span>
-                  </div>
-                  <div className="flex items-center justify-between mb-4 text-muted-foreground">
-                    <span>Ваш баланс:</span>
-                    <span className="text-xl font-bold text-secondary">{balance} ₽</span>
-                  </div>
-                  <Separator className="my-4" />
-                  <Button 
-                    className="w-full neon-border text-lg h-12"
-                    onClick={handlePurchase}
-                    disabled={balance < cartTotal}
-                  >
-                    <Icon name="CreditCard" className="mr-2 h-5 w-5" />
-                    Оплатить {cartTotal} ₽
-                  </Button>
-                </Card>
-              </>
-            )}
+            <Card className="p-12 text-center bg-card/50 backdrop-blur-sm border-primary/20">
+              <Icon name="MessageCircle" className="h-16 w-16 mx-auto mb-4 text-primary neon-glow" />
+              <h2 className="text-3xl font-bold mb-4 neon-glow text-primary">Оформление заказа</h2>
+              <p className="text-xl text-muted-foreground mb-6">Для покупки аккаунтов свяжитесь с нами в VK</p>
+              <Button 
+                size="lg"
+                onClick={() => window.open('https://vk.com/steamshop_nnd', '_blank')}
+                className="neon-border bg-primary hover:bg-primary/90"
+              >
+                <Icon name="MessageCircle" className="mr-2 h-5 w-5" />
+                Связаться в VK
+              </Button>
+            </Card>
           </div>
         )}
 
-        {currentView === 'profile' && (
-          <div className="max-w-4xl mx-auto">
-            {!isAuthenticated ? (
-              <Card className="p-12 text-center bg-card/50 backdrop-blur-sm border-primary/20">
-                <Icon name="UserX" className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <h2 className="text-2xl font-bold mb-2 text-foreground">Требуется авторизация</h2>
-                <p className="text-muted-foreground mb-6">Войдите в аккаунт для доступа к профилю</p>
-                <Button onClick={() => setShowAuthDialog(true)} className="neon-border">
-                  <Icon name="LogIn" className="mr-2 h-5 w-5" />
-                  Войти через Google
-                </Button>
-              </Card>
-            ) : (
-              <>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-3xl font-bold neon-glow text-primary">Профиль</h2>
-                  <Button variant="outline" onClick={handleLogout} className="border-destructive/50 hover:border-destructive">
-                    <Icon name="LogOut" className="mr-2 h-4 w-4" />
-                    Выйти
-                  </Button>
-                </div>
-                
-                <Card className="mb-6 bg-card/50 backdrop-blur-sm border-primary/20">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <Avatar className="h-20 w-20 neon-border">
-                          {user?.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
-                          <AvatarFallback className="bg-primary/20 text-primary text-2xl">
-                            {user?.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <CardTitle className="text-2xl text-primary">{user?.name}</CardTitle>
-                          <CardDescription className="text-foreground/70">{user?.email}</CardDescription>
-                          <Badge className="mt-2 bg-secondary/20 text-secondary border-secondary">
-                            <Icon name="Shield" className="h-3 w-3 mr-1" />
-                            Проверенный аккаунт
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Куплено аккаунтов</p>
-                        <p className="text-3xl font-bold text-primary neon-glow">{purchaseHistory.length}</p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <Card className="bg-card/50 backdrop-blur-sm border-primary/20 neon-border-purple">
-                    <CardHeader>
-                      <CardTitle className="text-2xl text-secondary neon-glow">Баланс</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-5xl font-bold text-primary neon-glow mb-6">
-                        {balance} ₽
-                      </div>
-                      
-                      <Separator className="my-6" />
-                      
-                      <Tabs defaultValue="card" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
-                          <TabsTrigger value="card">Карта</TabsTrigger>
-                          <TabsTrigger value="crypto">Электронные</TabsTrigger>
-                        </TabsList>
-                        
-                        <TabsContent value="card" className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="amount">Сумма пополнения</Label>
-                            <Input
-                              id="amount"
-                              type="number"
-                              placeholder="Введите сумму"
-                              value={topUpAmount}
-                              onChange={(e) => setTopUpAmount(e.target.value)}
-                              className="border-primary/30 focus:border-primary"
-                            />
-                          </div>
-                          <Button 
-                            className="w-full neon-border h-12"
-                            onClick={handleTopUp}
-                          >
-                            <Icon name="CreditCard" className="mr-2 h-5 w-5" />
-                            Пополнить картой
-                          </Button>
-                        </TabsContent>
-                        
-                        <TabsContent value="crypto" className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="amount2">Сумма пополнения</Label>
-                            <Input
-                              id="amount2"
-                              type="number"
-                              placeholder="Введите сумму"
-                              value={topUpAmount}
-                              onChange={(e) => setTopUpAmount(e.target.value)}
-                              className="border-primary/30 focus:border-primary"
-                            />
-                          </div>
-                          <Button 
-                            className="w-full neon-border-purple h-12"
-                            onClick={handleTopUp}
-                          >
-                            <Icon name="Wallet" className="mr-2 h-5 w-5" />
-                            Пополнить электронным кошельком
-                          </Button>
-                        </TabsContent>
-                      </Tabs>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
-                    <CardHeader>
-                      <CardTitle className="text-2xl text-primary">Статистика</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Icon name="ShoppingBag" className="h-5 w-5 text-primary" />
-                          <span className="text-foreground/80">Всего покупок</span>
-                        </div>
-                        <span className="text-xl font-bold text-primary">{purchaseHistory.length}</span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Icon name="DollarSign" className="h-5 w-5 text-secondary" />
-                          <span className="text-foreground/80">Потрачено</span>
-                        </div>
-                        <span className="text-xl font-bold text-secondary">
-                          {purchaseHistory.reduce((sum, acc) => sum + acc.price, 0)} ₽
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Icon name="Star" className="h-5 w-5 text-primary" />
-                          <span className="text-foreground/80">Средний рейтинг</span>
-                        </div>
-                        <span className="text-xl font-bold text-primary">
-                          {purchaseHistory.length > 0 
-                            ? (purchaseHistory.reduce((sum, acc) => sum + acc.rating, 0) / purchaseHistory.length).toFixed(1)
-                            : '0.0'
-                          }
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {purchaseHistory.length > 0 && (
-                  <Card className="bg-card/50 backdrop-blur-sm border-primary/20">
-                    <CardHeader>
-                      <CardTitle className="text-2xl text-primary">История покупок</CardTitle>
-                      <CardDescription>Ваши приобретённые аккаунты</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <ScrollArea className="h-[400px]">
-                        <div className="space-y-4">
-                          {purchaseHistory.map((account, idx) => (
-                            <Card key={idx} className="bg-background/50 border-primary/10">
-                              <CardContent className="flex items-center justify-between p-4">
-                                <div className="flex items-center gap-4">
-                                  <div className="w-20 h-12 rounded overflow-hidden">
-                                    <img 
-                                      src={account.image} 
-                                      alt={account.game}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </div>
-                                  <div>
-                                    <h4 className="font-bold text-primary">{account.game}</h4>
-                                    <p className="text-sm text-muted-foreground">{account.rank} • Уровень {account.level}</p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                  <Badge variant="outline" className="border-secondary text-secondary">
-                                    ★ {account.rating}
-                                  </Badge>
-                                  <div className="text-lg font-bold text-primary">{account.price} ₽</div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    </CardContent>
-                  </Card>
-                )}
-              </>
-            )}
-          </div>
-        )}
       </main>
 
       <Dialog open={!!selectedAccount} onOpenChange={() => setSelectedAccount(null)}>
@@ -1005,9 +585,14 @@ const Index = () => {
           {selectedAccount && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-2xl md:text-3xl text-primary neon-glow pr-8">
-                  {selectedAccount.title}
-                </DialogTitle>
+                <div className="flex items-start justify-between gap-4 mb-2">
+                  <DialogTitle className="text-2xl md:text-3xl text-primary neon-glow pr-8">
+                    {selectedAccount.title}
+                  </DialogTitle>
+                  <Badge className="bg-primary/20 text-primary border-2 border-primary text-base px-3 py-1 font-mono font-bold neon-glow shrink-0">
+                    {selectedAccount.code}
+                  </Badge>
+                </div>
                 <DialogDescription className="text-base text-foreground/80">
                   {selectedAccount.description}
                 </DialogDescription>
@@ -1134,13 +719,13 @@ const Index = () => {
                     <Button 
                       size="lg"
                       onClick={() => {
-                        addToCart(selectedAccount);
+                        handleBuyClick(selectedAccount);
                         setSelectedAccount(null);
                       }}
-                      className="neon-border w-full sm:w-auto"
+                      className="neon-border w-full sm:w-auto bg-primary hover:bg-primary/90"
                     >
-                      <Icon name="ShoppingCart" className="mr-2 h-5 w-5" />
-                      Добавить в корзину
+                      <Icon name="ShoppingBag" className="mr-2 h-5 w-5" />
+                      Купить аккаунт
                     </Button>
                   </div>
                 </div>
@@ -1150,154 +735,99 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
-        <DialogContent className="max-w-md bg-card/95 backdrop-blur-xl border-primary/30 neon-border">
+      <Dialog open={showBuyInstructionDialog} onOpenChange={setShowBuyInstructionDialog}>
+        <DialogContent className="max-w-2xl bg-card/95 backdrop-blur-xl border-primary/30 neon-border">
           <DialogHeader>
-            <DialogTitle className="text-3xl text-primary neon-glow text-center">
-              Добро пожаловать!
+            <DialogTitle className="text-3xl text-primary neon-glow flex items-center gap-3">
+              <Icon name="ShoppingBag" className="h-8 w-8" />
+              Инструкция по покупке
             </DialogTitle>
-            <DialogDescription className="text-center text-foreground/80">
-              Войдите для доступа ко всем функциям
+            <DialogDescription className="text-base text-foreground/80 mt-4">
+              Чтобы купить аккаунт, выполните следующие шаги:
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-6">
-            <div ref={googleButtonRef} className="flex justify-center"></div>
+          <div className="space-y-6 py-4">
+            {selectedPurchaseAccount && (
+              <Card className="p-4 bg-primary/10 border-primary/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-lg text-primary mb-1">{selectedPurchaseAccount.title}</h4>
+                    <p className="text-sm text-muted-foreground">{selectedPurchaseAccount.description}</p>
+                  </div>
+                  <Badge className="bg-primary/20 text-primary border-2 border-primary text-lg px-4 py-2 font-mono font-bold neon-glow">
+                    {selectedPurchaseAccount.code}
+                  </Badge>
+                </div>
+                <Separator className="my-3" />
+                <div className="text-2xl font-bold text-primary neon-glow">
+                  {selectedPurchaseAccount.price} ₽
+                </div>
+              </Card>
+            )}
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <Separator />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">
-                  Безопасный вход
-                </span>
-              </div>
+            <div className="space-y-4">
+              <Card className="p-4 bg-secondary/10 border-secondary/30">
+                <div className="flex items-start gap-3">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary/20 text-secondary font-bold shrink-0">
+                    1
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-secondary mb-1">Перейдите по кнопке "Купить"</h4>
+                    <p className="text-sm text-foreground/80">Вы будете перенаправлены в группу VKонтакте</p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-4 bg-secondary/10 border-secondary/30">
+                <div className="flex items-start gap-3">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary/20 text-secondary font-bold shrink-0">
+                    2
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-secondary mb-1">Нажмите кнопку "Сообщение"</h4>
+                    <p className="text-sm text-foreground/80">Она находится снизу названия сообщества</p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-4 bg-secondary/10 border-secondary/30">
+                <div className="flex items-start gap-3">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary/20 text-secondary font-bold shrink-0">
+                    3
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-secondary mb-1">Напишите код товара</h4>
+                    <p className="text-sm text-foreground/80 mb-2">Отправьте код в сообщения сообщества для оформления покупки</p>
+                    {selectedPurchaseAccount && (
+                      <Badge className="bg-primary/20 text-primary border border-primary text-base px-3 py-1 font-mono font-bold">
+                        Ваш код: {selectedPurchaseAccount.code}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </Card>
             </div>
 
-            <div className="text-center text-sm text-muted-foreground">
-              <p>Ваши данные защищены и используются только для авторизации</p>
+            <div className="pt-4 space-y-3">
+              <Button 
+                size="lg"
+                className="w-full neon-border bg-primary hover:bg-primary/90 text-lg h-14"
+                onClick={handleProceedToVK}
+              >
+                <Icon name="MessageCircle" className="mr-2 h-6 w-6" />
+                Перейти в VK и купить
+              </Button>
+              <Button 
+                size="lg"
+                variant="outline"
+                className="w-full"
+                onClick={() => setShowBuyInstructionDialog(false)}
+              >
+                Отмена
+              </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent className="max-w-2xl bg-card/95 backdrop-blur-xl border-primary/30 neon-border">
-          {purchasedAccount && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="text-2xl md:text-3xl text-primary neon-glow flex items-center gap-2">
-                  <Icon name="CheckCircle" className="h-8 w-8 text-secondary" />
-                  Покупка успешна!
-                </DialogTitle>
-                <DialogDescription className="text-base text-foreground/80">
-                  Вы успешно приобрели аккаунт. Ниже данные для входа:
-                </DialogDescription>
-              </DialogHeader>
-              
-              <ScrollArea className="max-h-[60vh]">
-                <div className="space-y-4 pr-4">
-                  <Card className="p-4 bg-secondary/10 border-secondary/30">
-                    <h3 className="font-bold text-lg mb-2 text-secondary flex items-center gap-2">
-                      <Icon name="Package" className="h-5 w-5" />
-                      {purchasedAccount.title}
-                    </h3>
-                    <p className="text-sm text-foreground/70">{purchasedAccount.description}</p>
-                  </Card>
-
-                  <Card className="p-4 bg-primary/10 border-primary/30">
-                    <h4 className="font-bold mb-3 text-primary flex items-center gap-2">
-                      <Icon name="Key" className="h-5 w-5" />
-                      Данные для входа
-                    </h4>
-                    <div className="space-y-3">
-                      <div className="p-3 bg-background/50 rounded border border-primary/20">
-                        <p className="text-xs text-muted-foreground mb-1">Логин Steam</p>
-                        <p className="font-mono text-sm text-foreground font-bold">steam_user_{purchasedAccount.id}</p>
-                      </div>
-                      <div className="p-3 bg-background/50 rounded border border-primary/20">
-                        <p className="text-xs text-muted-foreground mb-1">Пароль Steam</p>
-                        <p className="font-mono text-sm text-foreground font-bold">Pass{purchasedAccount.id}@Steam2024</p>
-                      </div>
-                      <div className="p-3 bg-background/50 rounded border border-primary/20">
-                        <p className="text-xs text-muted-foreground mb-1">Email</p>
-                        <p className="font-mono text-sm text-foreground font-bold">account{purchasedAccount.id}@steamshop.com</p>
-                      </div>
-                      <div className="p-3 bg-background/50 rounded border border-primary/20">
-                        <p className="text-xs text-muted-foreground mb-1">Пароль от Email</p>
-                        <p className="font-mono text-sm text-foreground font-bold">Email{purchasedAccount.id}@Pass2024</p>
-                      </div>
-                    </div>
-                  </Card>
-
-                  <Card className="p-4 bg-background/50 border-secondary/30">
-                    <h4 className="font-bold mb-2 text-secondary flex items-center gap-2">
-                      <Icon name="Library" className="h-4 w-4" />
-                      Игры в библиотеке ({purchasedAccount.games.length})
-                    </h4>
-                    <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
-                      {purchasedAccount.games.map((game, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs">
-                          {game}
-                        </Badge>
-                      ))}
-                    </div>
-                  </Card>
-
-                  <Card className="p-4 bg-background/50 border-primary/30">
-                    <h4 className="font-bold mb-2 text-primary flex items-center gap-2">
-                      <Icon name="Shield" className="h-4 w-4" />
-                      Привилегии аккаунта
-                    </h4>
-                    <div className="grid grid-cols-1 gap-1 text-sm">
-                      {purchasedAccount.privileges.map((privilege, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <Icon name="Check" className="h-3 w-3 text-secondary" />
-                          <span className="text-foreground/80">{privilege}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-
-                  <Card className="p-4 bg-primary/5 border-primary/30">
-                    <h4 className="font-bold mb-2 text-primary flex items-center gap-2">
-                      <Icon name="Info" className="h-4 w-4" />
-                      Важная информация
-                    </h4>
-                    <ul className="space-y-1 text-xs text-foreground/80">
-                      <li className="flex items-start gap-2">
-                        <Icon name="Dot" className="h-4 w-4 text-secondary shrink-0" />
-                        Данные отправлены на вашу почту
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Icon name="Dot" className="h-4 w-4 text-secondary shrink-0" />
-                        Рекомендуем сменить пароли после первого входа
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Icon name="Dot" className="h-4 w-4 text-secondary shrink-0" />
-                        Сохраните эти данные в надёжном месте
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Icon name="Dot" className="h-4 w-4 text-secondary shrink-0" />
-                        При возникновении проблем обратитесь в поддержку
-                      </li>
-                    </ul>
-                  </Card>
-
-                  <Button 
-                    className="w-full neon-border"
-                    onClick={() => {
-                      setShowSuccessDialog(false);
-                      setCurrentView('profile');
-                    }}
-                  >
-                    Перейти в профиль
-                  </Button>
-                </div>
-              </ScrollArea>
-            </>
-          )}
         </DialogContent>
       </Dialog>
     </div>
