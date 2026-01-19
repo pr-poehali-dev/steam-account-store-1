@@ -210,7 +210,7 @@ const Index = () => {
           <div className="flex items-center justify-between gap-2">
             <h1 className="text-xl md:text-3xl font-bold neon-glow text-primary">STEAM<span className="text-secondary">SHOP</span></h1>
             
-            <div className="flex items-center gap-1 md:gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size={isMobile ? "sm" : "default"} className="gap-2">
@@ -234,7 +234,6 @@ const Index = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
               
-              <div className={`flex items-center gap-1 ${isMobile ? 'md:gap-2' : 'gap-4'}`}>
               <Button 
                 variant={currentView === 'home' ? 'default' : 'ghost'}
                 onClick={() => setCurrentView('home')}
