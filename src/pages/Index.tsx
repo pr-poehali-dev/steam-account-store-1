@@ -21,65 +21,117 @@ import {
 
 type Account = {
   id: number;
-  game: string;
-  rank: string;
-  level: number;
-  hours: number;
+  title: string;
+  games: string[];
+  gamesCount: number;
   price: number;
   rating: number;
   reviews: number;
-  inventory: string[];
-  badges: string[];
+  privileges: string[];
+  region: string;
+  email: string;
+  hours: number;
+  level: number;
   description: string;
+  fullDescription: string;
   image: string;
+  category: 'budget' | 'standard' | 'premium' | 'ultimate';
 };
 
 const generateAccounts = (): Account[] => {
-  const games = ['CS:GO', 'Dota 2', 'PUBG', 'Apex Legends', 'Valorant', 'Rainbow Six', 'Overwatch', 'Rust', 'GTA V', 'ARK'];
-  const ranks = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master', 'Grandmaster', 'Challenger'];
-  const inventory = ['Knife', 'AWP Asiimov', 'AK-47 Redline', 'Glock Fade', 'M4A4 Howl', 'Butterfly Knife'];
-  const badges = ['Prime', 'Verified', 'Ranked', 'Achievements', 'Skins'];
-  
-  const descriptions = [
-    'Прокачанный аккаунт с отличной статистикой. Много редких скинов и достижений.',
-    'Аккаунт с Prime статусом. Все операции пройдены, богатый инвентарь.',
-    'Высокий ранг, много часов игры. Идеально для серьёзных игроков.',
-    'Аккаунт в отличном состоянии, без банов. Множество редких предметов.',
-    'Проверенный аккаунт с хорошей репутацией и уникальными скинами.',
+  const allGames = [
+    'CS:GO', 'Dota 2', 'PUBG', 'GTA V', 'Red Dead Redemption 2', 'Cyberpunk 2077',
+    'Elden Ring', 'The Witcher 3', 'Dark Souls 3', 'Sekiro', 'Baldur\'s Gate 3',
+    'Starfield', 'Hogwarts Legacy', 'Resident Evil 4', 'Dead Space', 'FIFA 24',
+    'Apex Legends', 'Rust', 'ARK', 'Valheim', 'Terraria', 'Stardew Valley',
+    'Hades', 'Hollow Knight', 'Celeste', 'Dead Cells', 'Rainbow Six Siege'
   ];
 
-  const gameImages: Record<string, string> = {
-    'CS:GO': 'https://cdn.akamai.steamstatic.com/steam/apps/730/header.jpg',
-    'Dota 2': 'https://cdn.akamai.steamstatic.com/steam/apps/570/header.jpg',
-    'PUBG': 'https://cdn.akamai.steamstatic.com/steam/apps/578080/header.jpg',
-    'Apex Legends': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1172470/header.jpg',
-    'Valorant': 'https://images.contentstack.io/v3/assets/bltb6530b271fddd0b1/blt5c61f2bd82e247a1/5eb26f133b09ef0e76f3ea78/V_AGENTS_587x408_Jett.jpg',
-    'Rainbow Six': 'https://cdn.akamai.steamstatic.com/steam/apps/359550/header.jpg',
-    'Overwatch': 'https://images.blz-contentstack.com/v3/assets/blt2477dcaf4ebd440c/blt5159232b9f7bc88b/62ea89e7e7799a109d1f0353/overwatch-logo-ow2.png',
-    'Rust': 'https://cdn.akamai.steamstatic.com/steam/apps/252490/header.jpg',
-    'GTA V': 'https://cdn.akamai.steamstatic.com/steam/apps/271590/header.jpg',
-    'ARK': 'https://cdn.akamai.steamstatic.com/steam/apps/346110/header.jpg',
-  };
+  const privileges = [
+    'Steam Guard включен',
+    'Нет ограничений торговли',
+    'Полный доступ к Market',
+    'Возможность добавлять друзей',
+    'Участие в сообществе',
+    'Prime Status',
+    'Family Sharing доступен',
+    'Без VAC банов',
+    'Email подтвержден',
+    'Номер телефона привязан'
+  ];
+
+  const regions = ['Россия', 'Казахстан', 'Украина', 'Европа', 'Любой регион'];
+
+  const accountTemplates = [
+    {
+      category: 'budget' as const,
+      gamesCount: [3, 5],
+      priceRange: [299, 599],
+      levelRange: [5, 15],
+      hoursRange: [50, 200],
+      privilegesCount: [3, 5]
+    },
+    {
+      category: 'standard' as const,
+      gamesCount: [5, 10],
+      priceRange: [699, 1499],
+      levelRange: [15, 30],
+      hoursRange: [200, 500],
+      privilegesCount: [5, 7]
+    },
+    {
+      category: 'premium' as const,
+      gamesCount: [10, 20],
+      priceRange: [1599, 3499],
+      levelRange: [30, 60],
+      hoursRange: [500, 1500],
+      privilegesCount: [7, 9]
+    },
+    {
+      category: 'ultimate' as const,
+      gamesCount: [20, 50],
+      priceRange: [3999, 8999],
+      levelRange: [60, 150],
+      hoursRange: [1500, 5000],
+      privilegesCount: [8, 10]
+    }
+  ];
 
   return Array.from({ length: 100 }, (_, i) => {
-    const game = games[Math.floor(Math.random() * games.length)];
+    const template = accountTemplates[Math.floor(Math.random() * accountTemplates.length)];
+    const gamesCount = Math.floor(Math.random() * (template.gamesCount[1] - template.gamesCount[0] + 1)) + template.gamesCount[0];
+    const selectedGames = [...allGames].sort(() => 0.5 - Math.random()).slice(0, gamesCount);
+    const price = Math.floor(Math.random() * (template.priceRange[1] - template.priceRange[0] + 1)) + template.priceRange[0];
+    const level = Math.floor(Math.random() * (template.levelRange[1] - template.levelRange[0] + 1)) + template.levelRange[0];
+    const hours = Math.floor(Math.random() * (template.hoursRange[1] - template.hoursRange[0] + 1)) + template.hoursRange[0];
+    const privilegesCount = Math.floor(Math.random() * (template.privilegesCount[1] - template.privilegesCount[0] + 1)) + template.privilegesCount[0];
+    const selectedPrivileges = [...privileges].sort(() => 0.5 - Math.random()).slice(0, privilegesCount);
+    const region = regions[Math.floor(Math.random() * regions.length)];
+
+    const categoryNames = {
+      budget: 'Стартовый',
+      standard: 'Стандарт',
+      premium: 'Премиум',
+      ultimate: 'Ультимейт'
+    };
+
     return {
       id: i + 1,
-      game,
-      rank: ranks[Math.floor(Math.random() * ranks.length)],
-      level: Math.floor(Math.random() * 100) + 10,
-      hours: Math.floor(Math.random() * 3000) + 100,
-      price: Math.floor(Math.random() * 400) + 50,
-      rating: parseFloat((Math.random() * 2 + 3).toFixed(1)),
-      reviews: Math.floor(Math.random() * 150) + 5,
-      inventory: Array.from({ length: Math.floor(Math.random() * 4) + 2 }, () => 
-        inventory[Math.floor(Math.random() * inventory.length)]
-      ),
-      badges: Array.from({ length: Math.floor(Math.random() * 3) + 1 }, () => 
-        badges[Math.floor(Math.random() * badges.length)]
-      ),
-      description: descriptions[Math.floor(Math.random() * descriptions.length)],
-      image: gameImages[game] || 'https://via.placeholder.com/460x215/0a0a0f/00f0ff?text=Steam+Account'
+      title: `Steam аккаунт "${categoryNames[template.category]}" — ${gamesCount} игр`,
+      games: selectedGames,
+      gamesCount,
+      price,
+      rating: parseFloat((Math.random() * 0.8 + 4.2).toFixed(1)),
+      reviews: Math.floor(Math.random() * 200) + 20,
+      privileges: selectedPrivileges,
+      region,
+      email: 'Включен в покупку',
+      hours,
+      level,
+      description: `${gamesCount} ${gamesCount === 1 ? 'игра' : gamesCount < 5 ? 'игры' : 'игр'} • Уровень ${level} • ${hours} часов наиграно`,
+      fullDescription: `Аккаунт Steam категории "${categoryNames[template.category]}" с ${gamesCount} платными играми. После покупки вы получите полный доступ к аккаунту: логин, пароль, email и пароль от email. Все игры активированы и готовы к запуску. Аккаунт проверен, без банов и ограничений.`,
+      image: 'https://cdn.akamai.steamstatic.com/steam/apps/730/header.jpg',
+      category: template.category
     };
   });
 };
@@ -99,18 +151,19 @@ const Index = () => {
   const [user, setUser] = useState<{ name: string; email: string; avatar: string } | null>(null);
   const [purchaseHistory, setPurchaseHistory] = useState<Account[]>([]);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [purchasedAccount, setPurchasedAccount] = useState<Account | null>(null);
 
-  const allGames = useMemo(() => {
-    const games = Array.from(new Set(accounts.map(acc => acc.game)));
-    return ['all', ...games.sort()];
-  }, [accounts]);
+  const allCategories = useMemo(() => {
+    return ['all', 'budget', 'standard', 'premium', 'ultimate'];
+  }, []);
 
   const filteredAccounts = accounts.filter(acc => {
-    const matchesSearch = acc.game.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      acc.rank.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesGame = selectedGame === 'all' || acc.game === selectedGame;
+    const matchesSearch = acc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      acc.games.some(game => game.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesCategory = selectedGame === 'all' || acc.category === selectedGame;
     const matchesPrice = acc.price >= priceRange[0] && acc.price <= priceRange[1];
-    return matchesSearch && matchesGame && matchesPrice;
+    return matchesSearch && matchesCategory && matchesPrice;
   });
 
   const addToCart = (account: Account) => {
@@ -118,7 +171,7 @@ const Index = () => {
       setCart([...cart, account]);
       toast({
         title: "Добавлено в корзину",
-        description: `${account.game} - ${account.rank}`,
+        description: account.title,
       });
     }
   };
@@ -142,12 +195,16 @@ const Index = () => {
     if (balance >= cartTotal) {
       setBalance(balance - cartTotal);
       setPurchaseHistory([...purchaseHistory, ...cart]);
+      if (cart.length === 1) {
+        setPurchasedAccount(cart[0]);
+        setShowSuccessDialog(true);
+      } else {
+        toast({
+          title: "Покупка успешна!",
+          description: `Вы приобрели ${cart.length} аккаунт(ов). Данные отправлены на email.`,
+        });
+      }
       setCart([]);
-      toast({
-        title: "Покупка успешна!",
-        description: `Вы приобрели ${cart.length} аккаунт(ов)`,
-      });
-      setCurrentView('profile');
     } else {
       toast({
         title: "Недостаточно средств",
@@ -308,7 +365,7 @@ const Index = () => {
                   STEAM<span className="text-secondary">SHOP</span>
                 </h1>
                 <p className={`${isMobile ? 'text-base' : 'text-2xl md:text-3xl'} text-foreground/80 max-w-3xl mx-auto`}>
-                  Магазин игровых аккаунтов премиум качества
+                  Steam аккаунты с платными играми. Полный доступ сразу после оплаты
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-center">
                   <Button 
@@ -348,7 +405,7 @@ const Index = () => {
               <Card className="p-6 bg-card/50 backdrop-blur-sm border-primary/20 text-center hover:neon-border transition-all">
                 <Icon name="DollarSign" className="h-12 w-12 mx-auto mb-4 text-primary" />
                 <h3 className="text-xl font-bold mb-2 text-primary">Низкие цены</h3>
-                <p className="text-muted-foreground">От 50₽ за прокачанный аккаунт</p>
+                <p className="text-muted-foreground">От 299₽ за Steam аккаунт с играми</p>
               </Card>
             </section>
 
@@ -363,23 +420,35 @@ const Index = () => {
                     className="group cursor-pointer transition-all duration-300 hover:scale-105 hover:neon-border bg-card/50 backdrop-blur-sm border-primary/20"
                     onClick={() => setSelectedAccount(account)}
                   >
-                    <div className="aspect-video overflow-hidden rounded-t-lg">
+                    <div className="aspect-video overflow-hidden rounded-t-lg bg-gradient-to-br from-primary/20 to-secondary/20">
                       <img 
                         src={account.image} 
-                        alt={account.game}
+                        alt={account.title}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                       />
                     </div>
-                    <CardHeader>
-                      <CardTitle className="text-primary group-hover:neon-glow transition-all">
-                        {account.game}
+                    <CardHeader className="space-y-2">
+                      <CardTitle className="text-sm md:text-base text-primary group-hover:neon-glow transition-all line-clamp-2">
+                        {account.title}
                       </CardTitle>
-                      <CardDescription className="text-foreground/70">
-                        {account.rank}
+                      <CardDescription className="text-xs text-foreground/70">
+                        {account.description}
                       </CardDescription>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {account.games.slice(0, 3).map((game, idx) => (
+                          <Badge key={idx} variant="outline" className="text-xs border-primary/30">
+                            {game}
+                          </Badge>
+                        ))}
+                        {account.games.length > 3 && (
+                          <Badge variant="outline" className="text-xs border-secondary/30 text-secondary">
+                            +{account.games.length - 3}
+                          </Badge>
+                        )}
+                      </div>
                     </CardHeader>
-                    <CardFooter className="flex items-center justify-between">
-                      <div className="text-2xl font-bold text-primary neon-glow">
+                    <CardFooter className="flex items-center justify-between pt-0">
+                      <div className="text-xl md:text-2xl font-bold text-primary neon-glow">
                         {account.price} ₽
                       </div>
                       <Badge variant="outline" className="border-secondary text-secondary">
@@ -409,7 +478,7 @@ const Index = () => {
               <div className="relative max-w-2xl mx-auto">
                 <Icon name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
-                  placeholder="Поиск по игре или рангу..."
+                  placeholder="Поиск по названию или игре..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 h-12 border-primary/30 focus:border-primary neon-border"
@@ -421,17 +490,18 @@ const Index = () => {
                   <div className="space-y-2">
                     <Label className="text-foreground flex items-center gap-2">
                       <Icon name="Gamepad2" className="h-4 w-4 text-primary" />
-                      Игра
+                      Категория
                     </Label>
                     <select
                       value={selectedGame}
                       onChange={(e) => setSelectedGame(e.target.value)}
                       className="w-full h-10 px-3 rounded-md border border-primary/30 bg-background text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                     >
-                      <option value="all">Все игры</option>
-                      {allGames.slice(1).map((game) => (
-                        <option key={game} value={game}>{game}</option>
-                      ))}
+                      <option value="all">Все категории</option>
+                      <option value="budget">Стартовый (3-5 игр)</option>
+                      <option value="standard">Стандарт (5-10 игр)</option>
+                      <option value="premium">Премиум (10-20 игр)</option>
+                      <option value="ultimate">Ультимейт (20+ игр)</option>
                     </select>
                   </div>
 
@@ -488,51 +558,54 @@ const Index = () => {
                   className="group cursor-pointer transition-all duration-300 hover:scale-105 hover:neon-border bg-card/50 backdrop-blur-sm border-primary/20 overflow-hidden"
                   onClick={() => setSelectedAccount(account)}
                 >
-                  <div className="aspect-video overflow-hidden">
+                  <div className="aspect-video overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20">
                     <img 
                       src={account.image} 
-                      alt={account.game}
+                      alt={account.title}
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                     />
                   </div>
                   <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-primary group-hover:neon-glow transition-all">
-                          {account.game}
-                        </CardTitle>
-                        <CardDescription className="mt-1 text-foreground/70">
-                          {account.rank}
-                        </CardDescription>
-                      </div>
-                      <Badge variant="outline" className="border-secondary text-secondary">
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-sm text-primary group-hover:neon-glow transition-all line-clamp-2">
+                        {account.title}
+                      </CardTitle>
+                      <Badge variant="outline" className="border-secondary text-secondary shrink-0">
                         ★ {account.rating}
                       </Badge>
                     </div>
+                    <CardDescription className="mt-2 text-xs text-foreground/70">
+                      {account.description}
+                    </CardDescription>
                   </CardHeader>
                   
-                  <CardContent>
-                    <div className="space-y-2 text-sm">
+                  <CardContent className="space-y-3">
+                    <div className="space-y-1 text-xs">
                       <div className="flex items-center gap-2 text-muted-foreground">
-                        <Icon name="TrendingUp" className="h-4 w-4 text-primary" />
+                        <Icon name="Gamepad2" className="h-3 w-3 text-primary" />
+                        {account.gamesCount} игр в библиотеке
+                      </div>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Icon name="TrendingUp" className="h-3 w-3 text-primary" />
                         Уровень {account.level}
                       </div>
                       <div className="flex items-center gap-2 text-muted-foreground">
-                        <Icon name="Clock" className="h-4 w-4 text-secondary" />
-                        {account.hours} часов
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Icon name="MessageSquare" className="h-4 w-4 text-primary" />
-                        {account.reviews} отзывов
+                        <Icon name="Clock" className="h-3 w-3 text-secondary" />
+                        {account.hours} часов наиграно
                       </div>
                     </div>
                     
-                    <div className="mt-3 flex flex-wrap gap-1">
-                      {account.badges.slice(0, 3).map((badge, idx) => (
+                    <div className="flex flex-wrap gap-1">
+                      {account.games.slice(0, 3).map((game, idx) => (
                         <Badge key={idx} variant="secondary" className="text-xs">
-                          {badge}
+                          {game}
                         </Badge>
                       ))}
+                      {account.games.length > 3 && (
+                        <Badge variant="outline" className="text-xs border-primary/30">
+                          +{account.games.length - 3}
+                        </Badge>
+                      )}
                     </div>
                   </CardContent>
                   
@@ -575,13 +648,25 @@ const Index = () => {
                   <div className="space-y-4">
                     {cart.map((account) => (
                       <Card key={account.id} className="bg-card/50 backdrop-blur-sm border-primary/20">
-                        <CardContent className="flex items-center justify-between p-4">
+                        <CardContent className="flex items-center justify-between p-4 gap-4">
                           <div className="flex-1">
-                            <h3 className="font-bold text-lg text-primary">{account.game}</h3>
-                            <p className="text-sm text-muted-foreground">{account.rank} • Уровень {account.level}</p>
+                            <h3 className="font-bold text-base md:text-lg text-primary line-clamp-1">{account.title}</h3>
+                            <p className="text-xs md:text-sm text-muted-foreground">{account.description}</p>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {account.games.slice(0, 2).map((game, idx) => (
+                                <Badge key={idx} variant="outline" className="text-xs">
+                                  {game}
+                                </Badge>
+                              ))}
+                              {account.games.length > 2 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{account.games.length - 2}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <div className="text-xl font-bold text-primary">{account.price} ₽</div>
+                          <div className="flex items-center gap-3 md:gap-4 shrink-0">
+                            <div className="text-lg md:text-xl font-bold text-primary">{account.price} ₽</div>
                             <Button 
                               variant="destructive" 
                               size="sm"
@@ -820,93 +905,150 @@ const Index = () => {
       </main>
 
       <Dialog open={!!selectedAccount} onOpenChange={() => setSelectedAccount(null)}>
-        <DialogContent className="max-w-2xl bg-card/95 backdrop-blur-xl border-primary/30 neon-border">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-primary/30 neon-border">
           {selectedAccount && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-3xl text-primary neon-glow">
-                  {selectedAccount.game}
+                <DialogTitle className="text-2xl md:text-3xl text-primary neon-glow pr-8">
+                  {selectedAccount.title}
                 </DialogTitle>
-                <DialogDescription className="text-lg text-foreground/80">
-                  {selectedAccount.rank} • Уровень {selectedAccount.level}
+                <DialogDescription className="text-base text-foreground/80">
+                  {selectedAccount.description}
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="space-y-6">
-                <div className="aspect-video overflow-hidden rounded-lg border border-primary/30">
-                  <img 
-                    src={selectedAccount.image} 
-                    alt={selectedAccount.game}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+              <ScrollArea className="max-h-[70vh]">
+                <div className="space-y-6 pr-4">
+                  <div className="aspect-video overflow-hidden rounded-lg border border-primary/30">
+                    <img 
+                      src={selectedAccount.image} 
+                      alt={selectedAccount.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
 
-                <div>
-                  <h4 className="font-bold mb-2 text-secondary">Описание</h4>
-                  <p className="text-foreground/80 leading-relaxed">{selectedAccount.description}</p>
-                </div>
+                  <div className="p-4 bg-secondary/10 rounded-lg border border-secondary/30">
+                    <h4 className="font-bold mb-2 text-secondary flex items-center gap-2">
+                      <Icon name="Info" className="h-4 w-4" />
+                      Полное описание
+                    </h4>
+                    <p className="text-sm text-foreground/80 leading-relaxed">{selectedAccount.fullDescription}</p>
+                  </div>
 
-                <Separator />
+                  <Separator />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3">
-                    <Icon name="Clock" className="h-5 w-5 text-secondary" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Наиграно</p>
-                      <p className="font-bold text-foreground">{selectedAccount.hours} часов</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <Icon name="Gamepad2" className="h-4 w-4 text-primary" />
+                        <p className="text-xs text-muted-foreground">Игр</p>
+                      </div>
+                      <p className="font-bold text-lg text-foreground">{selectedAccount.gamesCount}</p>
+                    </div>
+                    
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <Icon name="TrendingUp" className="h-4 w-4 text-primary" />
+                        <p className="text-xs text-muted-foreground">Уровень</p>
+                      </div>
+                      <p className="font-bold text-lg text-foreground">{selectedAccount.level}</p>
+                    </div>
+                    
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <Icon name="Clock" className="h-4 w-4 text-secondary" />
+                        <p className="text-xs text-muted-foreground">Часов</p>
+                      </div>
+                      <p className="font-bold text-lg text-foreground">{selectedAccount.hours}</p>
+                    </div>
+                    
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <Icon name="Star" className="h-4 w-4 text-primary" />
+                        <p className="text-xs text-muted-foreground">Рейтинг</p>
+                      </div>
+                      <p className="font-bold text-lg text-foreground">{selectedAccount.rating}</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-3">
-                    <Icon name="Star" className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Рейтинг</p>
-                      <p className="font-bold text-foreground">{selectedAccount.rating} ({selectedAccount.reviews} отзывов)</p>
+                  <div>
+                    <h4 className="font-bold mb-3 text-secondary flex items-center gap-2">
+                      <Icon name="Library" className="h-4 w-4" />
+                      Игры в библиотеке ({selectedAccount.games.length})
+                    </h4>
+                    <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
+                      {selectedAccount.games.map((game, idx) => (
+                        <Badge key={idx} variant="outline" className="border-primary/50 text-primary">
+                          {game}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
-                </div>
-                
-                <div>
-                  <h4 className="font-bold mb-2 text-secondary">Инвентарь</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedAccount.inventory.map((item, idx) => (
-                      <Badge key={idx} variant="outline" className="border-primary text-primary">
-                        {item}
-                      </Badge>
-                    ))}
+                  
+                  <div>
+                    <h4 className="font-bold mb-3 text-secondary flex items-center gap-2">
+                      <Icon name="Shield" className="h-4 w-4" />
+                      Привилегии и возможности
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {selectedAccount.privileges.map((privilege, idx) => (
+                        <div key={idx} className="flex items-center gap-2 p-2 rounded bg-secondary/5 border border-secondary/20">
+                          <Icon name="Check" className="h-4 w-4 text-secondary shrink-0" />
+                          <span className="text-sm text-foreground/90">{privilege}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-primary/10 rounded-lg border border-primary/30">
+                    <h4 className="font-bold mb-2 text-primary flex items-center gap-2">
+                      <Icon name="Package" className="h-4 w-4" />
+                      Что вы получите после оплаты:
+                    </h4>
+                    <ul className="space-y-1 text-sm text-foreground/80">
+                      <li className="flex items-center gap-2">
+                        <Icon name="Check" className="h-3 w-3 text-primary" />
+                        Логин Steam аккаунта
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Icon name="Check" className="h-3 w-3 text-primary" />
+                        Пароль Steam аккаунта
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Icon name="Check" className="h-3 w-3 text-primary" />
+                        Email привязанный к аккаунту
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Icon name="Check" className="h-3 w-3 text-primary" />
+                        Пароль от Email
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Icon name="Check" className="h-3 w-3 text-primary" />
+                        Инструкция по смене данных
+                      </li>
+                    </ul>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sticky bottom-0 bg-card/95 p-4 -mx-4 -mb-4 border-t border-primary/20">
+                    <div className="text-3xl md:text-4xl font-bold text-primary neon-glow">
+                      {selectedAccount.price} ₽
+                    </div>
+                    <Button 
+                      size="lg"
+                      onClick={() => {
+                        addToCart(selectedAccount);
+                        setSelectedAccount(null);
+                      }}
+                      className="neon-border w-full sm:w-auto"
+                    >
+                      <Icon name="ShoppingCart" className="mr-2 h-5 w-5" />
+                      Добавить в корзину
+                    </Button>
                   </div>
                 </div>
-                
-                <div>
-                  <h4 className="font-bold mb-2 text-secondary">Достижения</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedAccount.badges.map((badge, idx) => (
-                      <Badge key={idx} variant="secondary">
-                        {badge}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="flex items-center justify-between">
-                  <div className="text-4xl font-bold text-primary neon-glow">
-                    {selectedAccount.price} ₽
-                  </div>
-                  <Button 
-                    size="lg"
-                    onClick={() => {
-                      addToCart(selectedAccount);
-                      setSelectedAccount(null);
-                    }}
-                    className="neon-border"
-                  >
-                    <Icon name="ShoppingCart" className="mr-2 h-5 w-5" />
-                    Добавить в корзину
-                  </Button>
-                </div>
-              </div>
+              </ScrollArea>
             </>
           )}
         </DialogContent>
@@ -954,6 +1096,125 @@ const Index = () => {
               <p>Ваши данные защищены и используются только для авторизации</p>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="max-w-2xl bg-card/95 backdrop-blur-xl border-primary/30 neon-border">
+          {purchasedAccount && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-2xl md:text-3xl text-primary neon-glow flex items-center gap-2">
+                  <Icon name="CheckCircle" className="h-8 w-8 text-secondary" />
+                  Покупка успешна!
+                </DialogTitle>
+                <DialogDescription className="text-base text-foreground/80">
+                  Вы успешно приобрели аккаунт. Ниже данные для входа:
+                </DialogDescription>
+              </DialogHeader>
+              
+              <ScrollArea className="max-h-[60vh]">
+                <div className="space-y-4 pr-4">
+                  <Card className="p-4 bg-secondary/10 border-secondary/30">
+                    <h3 className="font-bold text-lg mb-2 text-secondary flex items-center gap-2">
+                      <Icon name="Package" className="h-5 w-5" />
+                      {purchasedAccount.title}
+                    </h3>
+                    <p className="text-sm text-foreground/70">{purchasedAccount.description}</p>
+                  </Card>
+
+                  <Card className="p-4 bg-primary/10 border-primary/30">
+                    <h4 className="font-bold mb-3 text-primary flex items-center gap-2">
+                      <Icon name="Key" className="h-5 w-5" />
+                      Данные для входа
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="p-3 bg-background/50 rounded border border-primary/20">
+                        <p className="text-xs text-muted-foreground mb-1">Логин Steam</p>
+                        <p className="font-mono text-sm text-foreground font-bold">steam_user_{purchasedAccount.id}</p>
+                      </div>
+                      <div className="p-3 bg-background/50 rounded border border-primary/20">
+                        <p className="text-xs text-muted-foreground mb-1">Пароль Steam</p>
+                        <p className="font-mono text-sm text-foreground font-bold">Pass{purchasedAccount.id}@Steam2024</p>
+                      </div>
+                      <div className="p-3 bg-background/50 rounded border border-primary/20">
+                        <p className="text-xs text-muted-foreground mb-1">Email</p>
+                        <p className="font-mono text-sm text-foreground font-bold">account{purchasedAccount.id}@steamshop.com</p>
+                      </div>
+                      <div className="p-3 bg-background/50 rounded border border-primary/20">
+                        <p className="text-xs text-muted-foreground mb-1">Пароль от Email</p>
+                        <p className="font-mono text-sm text-foreground font-bold">Email{purchasedAccount.id}@Pass2024</p>
+                      </div>
+                    </div>
+                  </Card>
+
+                  <Card className="p-4 bg-background/50 border-secondary/30">
+                    <h4 className="font-bold mb-2 text-secondary flex items-center gap-2">
+                      <Icon name="Library" className="h-4 w-4" />
+                      Игры в библиотеке ({purchasedAccount.games.length})
+                    </h4>
+                    <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+                      {purchasedAccount.games.map((game, idx) => (
+                        <Badge key={idx} variant="outline" className="text-xs">
+                          {game}
+                        </Badge>
+                      ))}
+                    </div>
+                  </Card>
+
+                  <Card className="p-4 bg-background/50 border-primary/30">
+                    <h4 className="font-bold mb-2 text-primary flex items-center gap-2">
+                      <Icon name="Shield" className="h-4 w-4" />
+                      Привилегии аккаунта
+                    </h4>
+                    <div className="grid grid-cols-1 gap-1 text-sm">
+                      {purchasedAccount.privileges.map((privilege, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <Icon name="Check" className="h-3 w-3 text-secondary" />
+                          <span className="text-foreground/80">{privilege}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+
+                  <Card className="p-4 bg-primary/5 border-primary/30">
+                    <h4 className="font-bold mb-2 text-primary flex items-center gap-2">
+                      <Icon name="Info" className="h-4 w-4" />
+                      Важная информация
+                    </h4>
+                    <ul className="space-y-1 text-xs text-foreground/80">
+                      <li className="flex items-start gap-2">
+                        <Icon name="Dot" className="h-4 w-4 text-secondary shrink-0" />
+                        Данные отправлены на вашу почту
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Icon name="Dot" className="h-4 w-4 text-secondary shrink-0" />
+                        Рекомендуем сменить пароли после первого входа
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Icon name="Dot" className="h-4 w-4 text-secondary shrink-0" />
+                        Сохраните эти данные в надёжном месте
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Icon name="Dot" className="h-4 w-4 text-secondary shrink-0" />
+                        При возникновении проблем обратитесь в поддержку
+                      </li>
+                    </ul>
+                  </Card>
+
+                  <Button 
+                    className="w-full neon-border"
+                    onClick={() => {
+                      setShowSuccessDialog(false);
+                      setCurrentView('profile');
+                    }}
+                  >
+                    Перейти в профиль
+                  </Button>
+                </div>
+              </ScrollArea>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
