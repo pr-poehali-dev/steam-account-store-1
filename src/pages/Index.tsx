@@ -11,6 +11,13 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { toast } from '@/hooks/use-toast';
+import { useDeviceMode } from '@/hooks/use-device-mode';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type Account = {
   id: number;
@@ -78,6 +85,7 @@ const generateAccounts = (): Account[] => {
 };
 
 const Index = () => {
+  const { mode, isMobile, setDeviceMode } = useDeviceMode();
   const [accounts] = useState<Account[]>(generateAccounts());
   const [cart, setCart] = useState<Account[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -198,38 +206,67 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background cyber-grid">
       <header className="sticky top-0 z-50 border-b border-primary/20 bg-background/80 backdrop-blur-xl">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold neon-glow text-primary">STEAM<span className="text-secondary">SHOP</span></h1>
+        <div className="container mx-auto px-4 py-3 md:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="text-xl md:text-3xl font-bold neon-glow text-primary">STEAM<span className="text-secondary">SHOP</span></h1>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1 md:gap-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size={isMobile ? "sm" : "default"} className="gap-2">
+                    <Icon name={mode === 'mobile' ? 'Smartphone' : mode === 'desktop' ? 'Monitor' : 'TabletSmartphone'} className="h-4 w-4" />
+                    {!isMobile && <span className="hidden lg:inline">{mode === 'auto' ? 'Авто' : mode === 'mobile' ? 'Моб' : 'ПК'}</span>}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setDeviceMode('auto')}>
+                    <Icon name="TabletSmartphone" className="mr-2 h-4 w-4" />
+                    Автоматически
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setDeviceMode('mobile')}>
+                    <Icon name="Smartphone" className="mr-2 h-4 w-4" />
+                    Мобильный
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setDeviceMode('desktop')}>
+                    <Icon name="Monitor" className="mr-2 h-4 w-4" />
+                    Компьютер
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              <div className={`flex items-center gap-1 ${isMobile ? 'md:gap-2' : 'gap-4'}`}>
               <Button 
                 variant={currentView === 'home' ? 'default' : 'ghost'}
                 onClick={() => setCurrentView('home')}
                 className="neon-border"
+                size={isMobile ? "icon" : "default"}
               >
-                <Icon name="Home" className="mr-2 h-4 w-4" />
-                Главная
+                <Icon name="Home" className={isMobile ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+                {!isMobile && "Главная"}
               </Button>
 
               <Button 
                 variant={currentView === 'catalog' ? 'default' : 'ghost'}
                 onClick={() => setCurrentView('catalog')}
                 className="neon-border"
+                size={isMobile ? "icon" : "default"}
               >
-                <Icon name="Store" className="mr-2 h-4 w-4" />
-                Каталог
+                <Icon name="Store" className={isMobile ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+                {!isMobile && "Каталог"}
               </Button>
               
               <Button 
                 variant={currentView === 'cart' ? 'default' : 'ghost'}
                 onClick={() => setCurrentView('cart')}
                 className="relative neon-border-purple"
+                size={isMobile ? "icon" : "default"}
               >
-                <Icon name="ShoppingCart" className="mr-2 h-4 w-4" />
-                Корзина
+                <Icon name="ShoppingCart" className={isMobile ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+                {!isMobile && "Корзина"}
                 {cart.length > 0 && (
-                  <Badge className="ml-2 bg-secondary text-secondary-foreground">{cart.length}</Badge>
+                  <Badge className={`${isMobile ? 'absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs' : 'ml-2'} bg-secondary text-secondary-foreground`}>
+                    {cart.length}
+                  </Badge>
                 )}
               </Button>
               
@@ -238,21 +275,23 @@ const Index = () => {
                   variant={currentView === 'profile' ? 'default' : 'ghost'}
                   onClick={() => setCurrentView('profile')}
                   className="flex items-center gap-2"
+                  size={isMobile ? "icon" : "default"}
                 >
                   <Avatar className="h-6 w-6">
                     <AvatarFallback className="text-xs bg-primary/20 text-primary">
                       {user?.name.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
-                  Профиль
+                  {!isMobile && "Профиль"}
                 </Button>
               ) : (
                 <Button 
                   onClick={() => setShowAuthDialog(true)}
                   className="neon-border"
+                  size={isMobile ? "icon" : "default"}
                 >
-                  <Icon name="LogIn" className="mr-2 h-4 w-4" />
-                  Войти
+                  <Icon name="LogIn" className={isMobile ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+                  {!isMobile && "Войти"}
                 </Button>
               )}
             </div>
@@ -263,31 +302,31 @@ const Index = () => {
       <main className="container mx-auto px-4 py-8">
         {currentView === 'home' && (
           <div className="space-y-12">
-            <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden rounded-2xl border border-primary/30">
+            <section className={`relative ${isMobile ? 'min-h-[50vh]' : 'min-h-[70vh]'} flex items-center justify-center overflow-hidden rounded-2xl border border-primary/30`}>
               <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-secondary/20 cyber-grid"></div>
-              <div className="relative z-10 text-center space-y-8 px-4">
-                <h1 className="text-7xl md:text-9xl font-bold neon-glow">
+              <div className="relative z-10 text-center space-y-4 md:space-y-8 px-4">
+                <h1 className={`${isMobile ? 'text-4xl' : 'text-7xl md:text-9xl'} font-bold neon-glow`}>
                   STEAM<span className="text-secondary">SHOP</span>
                 </h1>
-                <p className="text-2xl md:text-3xl text-foreground/80 max-w-3xl mx-auto">
+                <p className={`${isMobile ? 'text-base' : 'text-2xl md:text-3xl'} text-foreground/80 max-w-3xl mx-auto`}>
                   Магазин игровых аккаунтов премиум качества
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-center">
                   <Button 
-                    size="lg" 
+                    size={isMobile ? "default" : "lg"}
                     onClick={() => setCurrentView('catalog')}
-                    className="neon-border text-xl h-16 px-8"
+                    className={`neon-border ${isMobile ? 'text-base h-12 px-6 w-full sm:w-auto' : 'text-xl h-16 px-8'}`}
                   >
-                    <Icon name="Store" className="mr-2 h-6 w-6" />
+                    <Icon name="Store" className={`mr-2 ${isMobile ? 'h-4 w-4' : 'h-6 w-6'}`} />
                     Перейти в каталог
                   </Button>
                   <Button 
-                    size="lg" 
+                    size={isMobile ? "default" : "lg"}
                     variant="outline"
                     onClick={() => setCurrentView('profile')}
-                    className="neon-border-purple text-xl h-16 px-8"
+                    className={`neon-border-purple ${isMobile ? 'text-base h-12 px-6 w-full sm:w-auto' : 'text-xl h-16 px-8'}`}
                   >
-                    <Icon name="Wallet" className="mr-2 h-6 w-6" />
+                    <Icon name="Wallet" className={`mr-2 ${isMobile ? 'h-4 w-4' : 'h-6 w-6'}`} />
                     Пополнить баланс
                   </Button>
                 </div>
@@ -315,10 +354,10 @@ const Index = () => {
             </section>
 
             <section>
-              <h2 className="text-4xl font-bold mb-8 text-center neon-glow text-primary">
+              <h2 className={`${isMobile ? 'text-2xl' : 'text-4xl'} font-bold mb-6 md:mb-8 text-center neon-glow text-primary`}>
                 Популярные предложения
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'} gap-4 md:gap-6`}>
                 {accounts.slice(0, 8).map((account) => (
                   <Card 
                     key={account.id} 
