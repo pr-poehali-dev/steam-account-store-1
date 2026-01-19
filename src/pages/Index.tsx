@@ -42,7 +42,39 @@ const generateAccounts = (): Account[] => {
     'Elden Ring', 'The Witcher 3', 'Dark Souls 3', 'Sekiro', 'Baldur\'s Gate 3',
     'Starfield', 'Hogwarts Legacy', 'Resident Evil 4', 'Dead Space', 'FIFA 24',
     'Apex Legends', 'Rust', 'ARK', 'Valheim', 'Terraria', 'Stardew Valley',
-    'Hades', 'Hollow Knight', 'Celeste', 'Dead Cells', 'Rainbow Six Siege'
+    'Hades', 'Hollow Knight', 'Celeste', 'Dead Cells', 'Rainbow Six Siege',
+    'Counter-Strike 2', 'Team Fortress 2', 'Left 4 Dead 2', 'Portal 2', 'Half-Life 2',
+    'Garry\'s Mod', 'Call of Duty: Modern Warfare', 'Battlefield 2042', 'Overwatch 2',
+    'Fortnite', 'Warzone 2.0', 'Minecraft', 'Among Us', 'Fall Guys',
+    'Rocket League', 'FIFA 23', 'NBA 2K24', 'Madden NFL 24', 'UFC 5',
+    'Mortal Kombat 11', 'Street Fighter 6', 'Tekken 8', 'Dragon Ball Z Kakarot',
+    'Naruto Storm 4', 'One Piece Odyssey', 'Assassin\'s Creed Valhalla', 'Far Cry 6',
+    'Watch Dogs Legion', 'Ghost Recon Breakpoint', 'The Division 2', 'Splinter Cell',
+    'Prince of Persia', 'Rayman Legends', 'Metal Gear Solid V', 'Death Stranding',
+    'Horizon Zero Dawn', 'God of War', 'Spider-Man Remastered', 'Days Gone',
+    'The Last of Us Part I', 'Uncharted 4', 'Bloodborne', 'Demon\'s Souls',
+    'Nioh 2', 'Ghost of Tsushima', 'Control', 'Alan Wake 2', 'Quantum Break',
+    'Max Payne 3', 'Mafia Definitive Edition', 'Hitman 3', 'Dishonored 2',
+    'Prey', 'BioShock Infinite', 'Borderlands 3', 'Destiny 2', 'Warframe',
+    'Path of Exile', 'Diablo IV', 'Lost Ark', 'Black Desert Online', 'Guild Wars 2',
+    'Final Fantasy XIV', 'World of Warcraft', 'Elder Scrolls Online', 'New World',
+    'Star Wars Jedi Survivor', 'Hogwarts Legacy', 'Dying Light 2', 'Dead Island 2',
+    'Resident Evil Village', 'Resident Evil 2', 'Silent Hill 2', 'Outlast 2',
+    'Amnesia Rebirth', 'Phasmophobia', 'Lethal Company', 'Content Warning',
+    'Sons of The Forest', 'Palworld', 'Enshrouded', 'V Rising', 'Conan Exiles',
+    'Subnautica', 'Subnautica Below Zero', 'No Man\'s Sky', 'Elite Dangerous',
+    'Star Citizen', 'Kerbal Space Program', 'Stellaris', 'Civilization VI',
+    'Total War Warhammer 3', 'Age of Empires IV', 'Starcraft II', 'Command & Conquer',
+    'XCOM 2', 'Divinity Original Sin 2', 'Pillars of Eternity', 'Wasteland 3',
+    'Fallout 4', 'Fallout 76', 'Skyrim Special Edition', 'Oblivion', 'Morrowind',
+    'Dragon Age Inquisition', 'Mass Effect Legendary', 'Witcher 2', 'Witcher 1',
+    'Kingdom Come Deliverance', 'Mount & Blade II', 'Crusader Kings 3', 'Europa Universalis IV',
+    'Hearts of Iron IV', 'Victoria 3', 'Cities Skylines', 'Planet Zoo', 'Planet Coaster',
+    'Two Point Hospital', 'RimWorld', 'Oxygen Not Included', 'Factorio', 'Satisfactory',
+    'Automation', 'BeamNG.drive', 'Euro Truck Simulator 2', 'American Truck Simulator',
+    'Farming Simulator 22', 'Microsoft Flight Simulator', 'DCS World', 'X-Plane 12',
+    'iRacing', 'Assetto Corsa', 'Project Cars 3', 'F1 2023', 'WRC Generations',
+    'MotoGP 23', 'RIDE 5', 'Gran Turismo 7', 'Forza Horizon 5', 'Forza Motorsport'
   ];
 
   const privileges = [
@@ -95,7 +127,7 @@ const generateAccounts = (): Account[] => {
     }
   ];
 
-  return Array.from({ length: 100 }, (_, i) => {
+  return Array.from({ length: 732 }, (_, i) => {
     const template = accountTemplates[Math.floor(Math.random() * accountTemplates.length)];
     const gamesCount = Math.floor(Math.random() * (template.gamesCount[1] - template.gamesCount[0] + 1)) + template.gamesCount[0];
     const selectedGames = [...allGames].sort(() => 0.5 - Math.random()).slice(0, gamesCount);
@@ -141,6 +173,7 @@ const Index = () => {
   const { mode, isMobile, setDeviceMode } = useDeviceMode();
   const [accounts] = useState<Account[]>(generateAccounts());
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchType, setSearchType] = useState<'all' | 'code' | 'game'>('all');
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [currentView, setCurrentView] = useState<'home' | 'catalog' | 'cart'>('home');
   const [showBuyInstructionDialog, setShowBuyInstructionDialog] = useState(false);
@@ -153,8 +186,21 @@ const Index = () => {
   }, []);
 
   const filteredAccounts = accounts.filter(acc => {
-    const matchesSearch = acc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      acc.games.some(game => game.toLowerCase().includes(searchQuery.toLowerCase()));
+    let matchesSearch = true;
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      if (searchType === 'code') {
+        matchesSearch = acc.code.toLowerCase().includes(query);
+      } else if (searchType === 'game') {
+        matchesSearch = acc.games.some(game => game.toLowerCase().includes(query));
+      } else {
+        matchesSearch = acc.title.toLowerCase().includes(query) ||
+          acc.code.toLowerCase().includes(query) ||
+          acc.games.some(game => game.toLowerCase().includes(query));
+      }
+    }
+    
     const matchesCategory = selectedGame === 'all' || acc.category === selectedGame;
     const matchesPrice = acc.price >= priceRange[0] && acc.price <= priceRange[1];
     return matchesSearch && matchesCategory && matchesPrice;
@@ -401,15 +447,87 @@ const Index = () => {
         {currentView === 'catalog' && (
           <>
             <div className="mb-8 space-y-6">
-              <div className="relative max-w-2xl mx-auto">
-                <Icon name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  placeholder="Поиск по названию или игре..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-12 border-primary/30 focus:border-primary neon-border"
-                />
-              </div>
+              <Card className="p-6 bg-card/50 backdrop-blur-sm border-primary/20">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Icon name="Search" className="h-6 w-6 text-primary neon-glow" />
+                    <h3 className="text-xl font-bold text-primary">Поиск аккаунтов</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <Button
+                      variant={searchType === 'all' ? 'default' : 'outline'}
+                      onClick={() => setSearchType('all')}
+                      className={searchType === 'all' ? 'neon-border' : ''}
+                    >
+                      <Icon name="List" className="mr-2 h-4 w-4" />
+                      Все поля
+                    </Button>
+                    <Button
+                      variant={searchType === 'code' ? 'default' : 'outline'}
+                      onClick={() => setSearchType('code')}
+                      className={searchType === 'code' ? 'neon-border' : ''}
+                    >
+                      <Icon name="Hash" className="mr-2 h-4 w-4" />
+                      По коду
+                    </Button>
+                    <Button
+                      variant={searchType === 'game' ? 'default' : 'outline'}
+                      onClick={() => setSearchType('game')}
+                      className={searchType === 'game' ? 'neon-border' : ''}
+                    >
+                      <Icon name="Gamepad2" className="mr-2 h-4 w-4" />
+                      По игре
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSearchType('all');
+                        setSelectedGame('all');
+                        setPriceRange([0, 20000]);
+                      }}
+                      className="border-secondary/50 hover:border-secondary"
+                      title="Очистить все фильтры"
+                    >
+                      <Icon name="X" className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="relative">
+                    <Icon name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      placeholder={
+                        searchType === 'code' ? 'Введите код товара (например: BU001, ST025)...' :
+                        searchType === 'game' ? 'Введите название игры (например: CS:GO, Dota 2)...' :
+                        'Поиск по коду, названию или игре...'
+                      }
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 h-12 border-primary/30 focus:border-primary neon-border"
+                    />
+                  </div>
+                  
+                  {searchQuery && (
+                    <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/30">
+                      <p className="text-sm text-foreground/80">
+                        Поиск: <span className="text-primary font-bold">{searchType === 'code' ? 'по коду' : searchType === 'game' ? 'по игре' : 'везде'}</span>
+                        {' • '}
+                        Запрос: <span className="text-primary font-mono font-bold">"{searchQuery}"</span>
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSearchQuery('')}
+                        className="h-8"
+                      >
+                        <Icon name="X" className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </Card>
 
               <Card className="p-6 bg-card/50 backdrop-blur-sm border-primary/20">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
