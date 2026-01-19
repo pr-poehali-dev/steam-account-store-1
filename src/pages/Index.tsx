@@ -279,22 +279,32 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
-    if (showAuthDialog && googleButtonRef.current && window.google) {
-      window.google.accounts.id.initialize({
-        client_id: '101026698-o6rnmvv9b9akf5lhgju51a9l6c6pfssu.apps.googleusercontent.com',
-        callback: handleGoogleLogin
-      });
-      
-      window.google.accounts.id.renderButton(
-        googleButtonRef.current,
-        {
-          theme: 'filled_blue',
-          size: 'large',
-          text: 'continue_with',
-          width: '300',
-          locale: 'ru'
+    if (showAuthDialog && googleButtonRef.current) {
+      const initGoogleButton = () => {
+        if (window.google && window.google.accounts) {
+          console.log('Google API loaded, initializing button...');
+          window.google.accounts.id.initialize({
+            client_id: '101026698-o6rnmvv9b9akf5lhgju51a9l6c6pfssu.apps.googleusercontent.com',
+            callback: handleGoogleLogin
+          });
+          
+          window.google.accounts.id.renderButton(
+            googleButtonRef.current!,
+            {
+              theme: 'filled_blue',
+              size: 'large',
+              text: 'continue_with',
+              width: '300',
+              locale: 'ru'
+            }
+          );
+        } else {
+          console.log('Google API not loaded yet, waiting...');
+          setTimeout(initGoogleButton, 100);
         }
-      );
+      };
+      
+      initGoogleButton();
     }
   }, [showAuthDialog]);
 
