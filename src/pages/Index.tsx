@@ -414,10 +414,10 @@ const Index = () => {
               <Card className="p-6 bg-card/50 backdrop-blur-sm border-primary/20">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-foreground flex items-center gap-2">
+                    <label className="text-foreground flex items-center gap-2 text-sm font-medium">
                       <Icon name="Gamepad2" className="h-4 w-4 text-primary" />
                       Категория
-                    </Label>
+                    </label>
                     <select
                       value={selectedGame}
                       onChange={(e) => setSelectedGame(e.target.value)}
@@ -432,10 +432,10 @@ const Index = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-foreground flex items-center gap-2">
+                    <label className="text-foreground flex items-center gap-2 text-sm font-medium">
                       <Icon name="DollarSign" className="h-4 w-4 text-secondary" />
                       Цена: {priceRange[0]} - {priceRange[1]} ₽
-                    </Label>
+                    </label>
                     <div className="flex items-center gap-4">
                       <Input
                         type="number"
