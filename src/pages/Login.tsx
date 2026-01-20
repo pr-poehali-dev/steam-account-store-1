@@ -71,9 +71,6 @@ const Login = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
           <CardTitle className="text-3xl font-bold">SteamShop</CardTitle>
-          <CardDescription className="text-lg">
-            Войдите в аккаунт для доступа к личному кабинету
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <Button
