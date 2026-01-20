@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -6,8 +7,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 
 type HeaderProps = {
   currentView: 'home' | 'catalog' | 'cart';
@@ -21,6 +33,15 @@ export const Header = ({ currentView, setCurrentView, isMobile, mode, setDeviceM
   const navigate = useNavigate();
   const userName = localStorage.getItem('user_name') || '';
   const userPhoto = localStorage.getItem('user_photo') || '';
+  const userEmail = localStorage.getItem('user_email') || '';
+  
+  const [showSupportDialog, setShowSupportDialog] = useState(false);
+  const [supportForm, setSupportForm] = useState({
+    name: userName,
+    email: userEmail,
+    message: ''
+  });
+  const [isSending, setIsSending] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('user_email');
@@ -28,6 +49,46 @@ export const Header = ({ currentView, setCurrentView, isMobile, mode, setDeviceM
     localStorage.removeItem('user_photo');
     localStorage.removeItem('user_uid');
     navigate('/login');
+  };
+
+  const handleSupportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSending(true);
+
+    try {
+      const response = await fetch('https://functions.poehali.dev/b0061fb1-24b7-478a-a6ec-7e5dba753eeb', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(supportForm),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: 'Сообщение отправлено!',
+          description: 'Мы свяжемся с вами в ближайшее время.',
+        });
+        setShowSupportDialog(false);
+        setSupportForm({ name: userName, email: userEmail, message: '' });
+      } else {
+        toast({
+          title: 'Ошибка отправки',
+          description: data.error || 'Не удалось отправить сообщение',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось отправить сообщение',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -66,7 +127,7 @@ export const Header = ({ currentView, setCurrentView, isMobile, mode, setDeviceM
               </Button>
               <Button
                 variant="ghost"
-                onClick={() => window.open('https://t.me/yoursupport', '_blank')}
+                onClick={() => setShowSupportDialog(true)}
               >
                 <Icon name="MessageCircle" className="mr-2 h-4 w-4" />
                 Поддержка
@@ -116,6 +177,83 @@ export const Header = ({ currentView, setCurrentView, isMobile, mode, setDeviceM
           </DropdownMenu>
         </div>
       </div>
+
+      <Dialog open={showSupportDialog} onOpenChange={setShowSupportDialog}>
+        <DialogContent className={`${isMobile ? 'w-[95vw] max-w-[95vw]' : 'max-w-md'}`}>
+          <DialogHeader>
+            <DialogTitle>Связаться с поддержкой</DialogTitle>
+            <DialogDescription>
+              Заполните форму ниже и мы свяжемся с вами в ближайшее время
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSupportSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="support-name">Ваше имя</Label>
+              <Input
+                id="support-name"
+                value={supportForm.name}
+                onChange={(e) => setSupportForm({ ...supportForm, name: e.target.value })}
+                placeholder="Введите ваше имя"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="support-email">Email</Label>
+              <Input
+                id="support-email"
+                type="email"
+                value={supportForm.email}
+                onChange={(e) => setSupportForm({ ...supportForm, email: e.target.value })}
+                placeholder="your@email.com"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="support-message">Сообщение</Label>
+              <Textarea
+                id="support-message"
+                value={supportForm.message}
+                onChange={(e) => setSupportForm({ ...supportForm, message: e.target.value })}
+                placeholder="Опишите вашу проблему или вопрос..."
+                rows={5}
+                required
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowSupportDialog(false)}
+                className="flex-1"
+                disabled={isSending}
+              >
+                Отмена
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={isSending}
+              >
+                {isSending ? (
+                  <>
+                    <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />
+                    Отправка...
+                  </>
+                ) : (
+                  <>
+                    <Icon name="Send" className="mr-2 h-4 w-4" />
+                    Отправить
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 };

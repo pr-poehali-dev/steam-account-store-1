@@ -16,7 +16,8 @@ def handler(event: dict, context) -> dict:
                 'Access-Control-Allow-Methods': 'POST, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type'
             },
-            'body': ''
+            'body': '',
+            'isBase64Encoded': False
         }
     
     if method == 'POST':
@@ -33,7 +34,8 @@ def handler(event: dict, context) -> dict:
                         'Content-Type': 'application/json',
                         'Access-Control-Allow-Origin': '*'
                     },
-                    'body': json.dumps({'error': 'Все поля обязательны для заполнения'})
+                    'body': json.dumps({'error': 'Все поля обязательны для заполнения'}),
+                    'isBase64Encoded': False
                 }
             
             if '@' not in email or '.' not in email:
@@ -43,7 +45,8 @@ def handler(event: dict, context) -> dict:
                         'Content-Type': 'application/json',
                         'Access-Control-Allow-Origin': '*'
                     },
-                    'body': json.dumps({'error': 'Некорректный email адрес'})
+                    'body': json.dumps({'error': 'Некорректный email адрес'}),
+                    'isBase64Encoded': False
                 }
             
             target_email = 'steamshop202@gmail.com'
@@ -76,7 +79,8 @@ Email отправителя: {email}
                     'body': json.dumps({
                         'success': True,
                         'message': 'Сообщение принято. Настройте SMTP для реальной отправки.'
-                    })
+                    }),
+                    'isBase64Encoded': False
                 }
             
             msg = MIMEMultipart()
@@ -100,7 +104,8 @@ Email отправителя: {email}
                 'body': json.dumps({
                     'success': True,
                     'message': 'Сообщение успешно отправлено!'
-                })
+                }),
+                'isBase64Encoded': False
             }
             
         except Exception as e:
@@ -110,7 +115,8 @@ Email отправителя: {email}
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({'error': f'Ошибка при отправке: {str(e)}'})
+                'body': json.dumps({'error': f'Ошибка при отправке: {str(e)}'}),
+                'isBase64Encoded': False
             }
     
     return {
@@ -119,5 +125,6 @@ Email отправителя: {email}
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
         },
-        'body': json.dumps({'error': 'Method not allowed'})
+        'body': json.dumps({'error': 'Method not allowed'}),
+        'isBase64Encoded': False
     }
