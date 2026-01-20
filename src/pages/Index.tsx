@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Icon from '@/components/ui/icon';
 import { toast } from '@/hooks/use-toast';
 import { useDeviceMode } from '@/hooks/use-device-mode';
@@ -170,6 +172,7 @@ const generateAccounts = (): Account[] => {
 };
 
 const Index = () => {
+  const navigate = useNavigate();
   const { mode, isMobile, setDeviceMode } = useDeviceMode();
   const [accounts] = useState<Account[]>(generateAccounts());
   const [searchQuery, setSearchQuery] = useState('');
@@ -180,6 +183,32 @@ const Index = () => {
   const [selectedPurchaseAccount, setSelectedPurchaseAccount] = useState<Account | null>(null);
   const [selectedGame, setSelectedGame] = useState<string>('all');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 20000]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [userPhoto, setUserPhoto] = useState('');
+
+  useEffect(() => {
+    const email = localStorage.getItem('user_email');
+    if (email) {
+      setIsLoggedIn(true);
+      setUserName(localStorage.getItem('user_name') || 'Пользователь');
+      setUserPhoto(localStorage.getItem('user_photo') || '');
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user_email');
+    localStorage.removeItem('user_name');
+    localStorage.removeItem('user_photo');
+    localStorage.removeItem('user_uid');
+    setIsLoggedIn(false);
+    setUserName('');
+    setUserPhoto('');
+    toast({
+      title: 'Выход выполнен',
+      description: 'Вы успешно вышли из аккаунта',
+    });
+  };
 
   const allCategories = useMemo(() => {
     return ['all', 'budget', 'standard', 'premium', 'ultimate'];
@@ -290,6 +319,40 @@ const Index = () => {
                 <Icon name="MessageCircle" className={isMobile ? "h-4 w-4" : "mr-2 h-4 w-4"} />
                 {!isMobile && "VK"}
               </Button>
+
+              {isLoggedIn ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="neon-border gap-2" size={isMobile ? "sm" : "default"}>
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage src={userPhoto} alt={userName} />
+                        <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      {!isMobile && <span>Привет, {userName.split(' ')[0]}!</span>}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => navigate('/dashboard')}>
+                      <Icon name="User" className="mr-2 h-4 w-4" />
+                      Личный кабинет
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <Icon name="LogOut" className="mr-2 h-4 w-4" />
+                      Выйти
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button 
+                  variant="default"
+                  onClick={() => navigate('/login')}
+                  className="neon-border"
+                  size={isMobile ? "sm" : "default"}
+                >
+                  <Icon name="LogIn" className={isMobile ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+                  {!isMobile && "Войти"}
+                </Button>
+              )}
             </div>
           </div>
         </div>
