@@ -70,11 +70,6 @@ const Login = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
-          <div className="flex justify-center">
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-full">
-              <Icon name="Gamepad2" className="w-12 h-12 text-white" />
-            </div>
-          </div>
           <CardTitle className="text-3xl font-bold">SteamShop</CardTitle>
           <CardDescription className="text-lg">
             Войдите в аккаунт для доступа к личному кабинету
