@@ -64,6 +64,13 @@ export const Header = ({ currentView, setCurrentView, isMobile, mode, setDeviceM
                 <Icon name="Store" className="mr-2 h-4 w-4" />
                 Каталог
               </Button>
+              <Button
+                variant="ghost"
+                onClick={() => window.open('https://t.me/yoursupport', '_blank')}
+              >
+                <Icon name="MessageCircle" className="mr-2 h-4 w-4" />
+                Поддержка
+              </Button>
             </nav>
           )}
 
