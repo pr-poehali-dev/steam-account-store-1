@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
@@ -9,30 +11,59 @@ const Login = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setIsLoading(true);
     
-    const demoUser = {
-      email: 'demo@steamshop.ru',
-      displayName: 'Демо пользователь',
-      photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo',
-      uid: 'demo-user-' + Date.now()
-    };
+    if (!auth || !googleProvider) {
+      const demoUser = {
+        email: 'demo@steamshop.ru',
+        displayName: 'Демо пользователь',
+        photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo',
+        uid: 'demo-user-' + Date.now()
+      };
 
-    localStorage.setItem('user_email', demoUser.email);
-    localStorage.setItem('user_name', demoUser.displayName);
-    localStorage.setItem('user_photo', demoUser.photoURL);
-    localStorage.setItem('user_uid', demoUser.uid);
+      localStorage.setItem('user_email', demoUser.email);
+      localStorage.setItem('user_name', demoUser.displayName);
+      localStorage.setItem('user_photo', demoUser.photoURL);
+      localStorage.setItem('user_uid', demoUser.uid);
 
-    toast({
-      title: 'Успешный вход!',
-      description: `Добро пожаловать!`,
-    });
+      toast({
+        title: 'Вход в демо режиме',
+        description: 'Firebase не настроен, используется демо аккаунт',
+      });
 
-    setTimeout(() => {
+      setTimeout(() => {
+        navigate('/dashboard');
+        setIsLoading(false);
+      }, 500);
+      return;
+    }
+
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      localStorage.setItem('user_email', user.email || '');
+      localStorage.setItem('user_name', user.displayName || '');
+      localStorage.setItem('user_photo', user.photoURL || '');
+      localStorage.setItem('user_uid', user.uid);
+
+      toast({
+        title: 'Успешный вход!',
+        description: `Добро пожаловать, ${user.displayName}!`,
+      });
+
       navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Ошибка авторизации:', error);
+      toast({
+        title: 'Ошибка входа',
+        description: error.message || 'Не удалось войти через Google',
+        variant: 'destructive',
+      });
+    } finally {
       setIsLoading(false);
-    }, 800);
+    }
   };
 
   return (
