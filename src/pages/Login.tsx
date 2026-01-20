@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
@@ -11,28 +13,45 @@ const Login = () => {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
-    
-    const demoUser = {
-      email: 'demo@steamshop.ru',
-      displayName: 'Демо пользователь',
-      photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo',
-      uid: 'demo-user-' + Date.now()
-    };
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
 
-    localStorage.setItem('user_email', demoUser.email);
-    localStorage.setItem('user_name', demoUser.displayName);
-    localStorage.setItem('user_photo', demoUser.photoURL);
-    localStorage.setItem('user_uid', demoUser.uid);
+      localStorage.setItem('user_email', user.email || '');
+      localStorage.setItem('user_name', user.displayName || '');
+      localStorage.setItem('user_photo', user.photoURL || '');
+      localStorage.setItem('user_uid', user.uid);
 
-    toast({
-      title: 'Успешный вход!',
-      description: `Добро пожаловать, ${demoUser.displayName}!`,
-    });
+      toast({
+        title: 'Успешный вход!',
+        description: `Добро пожаловать, ${user.displayName}!`,
+      });
 
-    setTimeout(() => {
       navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Ошибка авторизации:', error);
+      
+      const demoUser = {
+        email: 'demo@steamshop.ru',
+        displayName: 'Демо пользователь',
+        photoURL: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo',
+        uid: 'demo-user-' + Date.now()
+      };
+
+      localStorage.setItem('user_email', demoUser.email);
+      localStorage.setItem('user_name', demoUser.displayName);
+      localStorage.setItem('user_photo', demoUser.photoURL);
+      localStorage.setItem('user_uid', demoUser.uid);
+
+      toast({
+        title: 'Вход в демо режиме',
+        description: 'Firebase не настроен, используется демо аккаунт',
+      });
+
+      navigate('/dashboard');
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   return (
