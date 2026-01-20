@@ -44,11 +44,7 @@ export const Header = ({ currentView, setCurrentView, isMobile, mode, setDeviceM
   const [isSending, setIsSending] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem('user_email');
-    localStorage.removeItem('user_name');
-    localStorage.removeItem('user_photo');
-    localStorage.removeItem('user_uid');
-    navigate('/login');
+    window.location.reload();
   };
 
   const handleSupportSubmit = async (e: React.FormEvent) => {
@@ -150,10 +146,6 @@ export const Header = ({ currentView, setCurrentView, isMobile, mode, setDeviceM
               <DropdownMenuItem onClick={() => navigate('/dashboard')}>
                 <Icon name="User" className="mr-2 h-4 w-4" />
                 Личный кабинет
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout}>
-                <Icon name="LogOut" className="mr-2 h-4 w-4" />
-                Выйти
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

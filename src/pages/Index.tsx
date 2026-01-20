@@ -29,9 +29,18 @@ const Index = () => {
   const [sortBy, setSortBy] = useState<string>('price-asc');
 
   useEffect(() => {
-    const userEmail = localStorage.getItem('user_email');
-    if (!userEmail) {
-      navigate('/login');
+    let userId = localStorage.getItem('user_uid');
+    
+    if (!userId) {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      userId = '';
+      for (let i = 0; i < 8; i++) {
+        userId += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      localStorage.setItem('user_uid', userId);
+      localStorage.setItem('user_email', `user${userId}@steamshop.local`);
+      localStorage.setItem('user_name', `Пользователь ${userId}`);
+      localStorage.setItem('user_photo', `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`);
     }
   }, [navigate]);
 
