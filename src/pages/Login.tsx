@@ -12,15 +12,6 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
-    if (!auth || !googleProvider) {
-      toast({
-        title: 'Firebase не настроен',
-        description: 'Пожалуйста, добавьте Firebase ключи в настройках проекта',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     setIsLoading(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
